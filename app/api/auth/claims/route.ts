@@ -11,7 +11,8 @@ export async function POST(request: Request) {
     const current = await auth.getUser(decoded.uid)
     if (current.customClaims?.role !== 'authenticated') await auth.setCustomUserClaims(decoded.uid, { ...current.customClaims, role: 'authenticated' })
     return NextResponse.json({ ok: true })
-  } catch {
+  } catch (error) {
+    console.error('firebase_claims_failed', error instanceof Error ? error.message : 'unknown error')
     return NextResponse.json({ error: 'Could not initialize account permissions.' }, { status: 401 })
   }
 }
