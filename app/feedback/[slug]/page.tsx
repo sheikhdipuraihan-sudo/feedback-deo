@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { CheckCircle2, MessageSquare, ShieldCheck, Star } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import Preloader from '@/components/Preloader'
+import { notifyTelegram } from '@/lib/telegram'
 
 type Workspace = { id: string; name: string; slug: string }
 
@@ -55,7 +56,10 @@ export default function PublicFeedbackPage({ params }: Props) {
       feedback_table_id: new URLSearchParams(window.location.search).get('table') || null,
     })
     if (submitError) setError(submitError.message.includes('free monthly feedback limit') ? 'This workspace has reached its 30-feedback monthly limit.' : 'We could not send that feedback. Please try again.')
-    else setSubmitted(true)
+    else {
+      setSubmitted(true)
+      void notifyTelegram({ workspace_slug: workspace.slug, event: 'feedback', rating, comment: comment.trim() })
+    }
     setSubmitting(false)
   }
 

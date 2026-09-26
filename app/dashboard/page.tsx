@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { ArrowRight, BarChart3, Check, Copy, Download, ExternalLink, LogOut, Pencil, Plus, RefreshCw, Star, Trash2 } from 'lucide-react'
+import { ArrowRight, BarChart3, Bell, Check, Copy, Download, ExternalLink, LogOut, MessageCircle, Pencil, Plus, RefreshCw, Star, Trash2 } from 'lucide-react'
 import { QRCodeSVG } from 'qrcode.react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
@@ -14,6 +14,7 @@ type Workspace = { id: string; name: string; slug: string; plan: 'free' | 'pro';
 type Feedback = { id: string; rating: number; comment: string; created_at: string }
 type FeedbackTable = { id: string; name: string; created_at: string }
 type CachePayload = { workspace: Workspace | null; tables: FeedbackTable[]; feedback: Feedback[] }
+type TelegramConnection = { connected: boolean; telegram_username: string | null; connected_at: string | null }
 
 export const dynamic = 'force-dynamic'
 const CACHE_PREFIX = 'feedback-deo-dashboard:'
@@ -34,6 +35,9 @@ export default function DashboardPage() {
   const [copied, setCopied] = useState('')
   const [editingName, setEditingName] = useState(false)
   const [workspaceName, setWorkspaceName] = useState('')
+  const [telegramConnection, setTelegramConnection] = useState<TelegramConnection | null>(null)
+  const [telegramLink, setTelegramLink] = useState('')
+  const [telegramLoading, setTelegramLoading] = useState(false)
 
   const cacheKey = workspace ? `${CACHE_PREFIX}${workspace.id}` : `${CACHE_PREFIX}current`
   const saveCache = useCallback((payload: CachePayload) => {
@@ -65,8 +69,13 @@ export default function DashboardPage() {
     const nextWorkspace = workspaceResult.data as Workspace | null
     setWorkspace(nextWorkspace)
     if (!nextWorkspace) {
-      setTables([]); setFeedback([]); setLoading(false); setRefreshing(false); saveCache({ workspace: null, tables: [], feedback: [] }); return
+      setTables([]); setFeedback([]); setTelegramConnection(null); setLoading(false); setRefreshing(false); saveCache({ workspace: null, tables: [], feedback: [] }); return
     }
+    if (nextWorkspace.plan === 'pro') {
+      const telegramResult = await supabase.rpc('get_telegram_connection')
+      const telegramData = Array.isArray(telegramResult.data) ? telegramResult.data[0] : telegramResult.data
+      setTelegramConnection((telegramData || { connected: false, telegram_username: null, connected_at: null }) as TelegramConnection)
+    } else setTelegramConnection(null)
 
     const [tablesResult, feedbackResult] = await Promise.all([
       supabase.from('tables').select('id,name,created_at').eq('workspace_id', nextWorkspace.id).order('created_at', { ascending: true }),
@@ -126,6 +135,15 @@ export default function DashboardPage() {
     setSaving(false)
   }
 
+  async function connectTelegram() {
+    if (!supabase || workspace?.plan !== 'pro') return
+    setTelegramLoading(true); setError(''); setMessage('')
+    const { data, error: tokenError } = await supabase.rpc('create_telegram_link_token')
+    if (tokenError || !data) setError(tokenError?.message.includes('pro') ? 'Telegram notifications are available on Pro.' : 'Could not create a Telegram connection link.')
+    else setTelegramLink(`https://t.me/feedbackdeoBoT?start=${data}`)
+    setTelegramLoading(false)
+  }
+
   async function copyLink(link: string) {
     try { await navigator.clipboard.writeText(link); setCopied(link); window.setTimeout(() => setCopied(''), 1800) } catch { setError('Copy failed. You can select the link manually.') }
   }
@@ -171,6 +189,7 @@ export default function DashboardPage() {
     {!workspace ? <section className="setup-card"><div className="setup-icon"><Plus /></div><h2>Create your first feedback space</h2><p>Start with your business name, then share your public feedback link with customers.</p><form onSubmit={createWorkspace}><input value={newSpace} onChange={(event) => setNewSpace(event.target.value)} placeholder="The Commons Café" required /><button className="button green" disabled={saving}>{saving ? 'Creating…' : 'Create space'} <Plus /></button></form></section> : <>
       <div className="stats-grid"><div className="stat-card"><small>AVERAGE RATING</small><strong>{average} <Star className="stat-star" fill="currentColor" /></strong><span>{workspace?.plan === 'pro' ? 'Unlimited on Pro' : `Free plan · ${monthFeedbackCount}/30 this month`}</span></div><div className="stat-card"><small>TOTAL FEEDBACK</small><strong>{feedback.length}</strong><span>Anonymous responses</span></div><div className="stat-card"><small>SPACE STATUS</small><strong className="status-live">Live</strong><span>Ready to collect</span></div></div>
       <section className="plan-banner"><div><p className="kicker">YOUR PLAN</p><h2>{workspace?.plan === 'pro' ? 'Pro · unlimited feedback' : `${Math.max(0, 30 - monthFeedbackCount)} feedback left this month`}</h2><p>{workspace?.plan === 'pro' ? 'Your space can collect as much feedback as you need.' : 'Free spaces include 30 feedback submissions each calendar month.'}</p></div>{workspace?.plan !== 'pro' && <Link className="button green" href="/payment">Upgrade to Pro <ArrowRight /></Link>}</section>
+      <section className="telegram-panel"><div className="telegram-panel-icon"><MessageCircle /></div><div className="telegram-panel-copy"><p className="kicker">TELEGRAM ALERTS</p><h2>{telegramConnection?.connected ? 'Telegram is connected' : 'Get alerts in Telegram'}</h2><p>{telegramConnection?.connected ? `Connected${telegramConnection.telegram_username ? ` to @${telegramConnection.telegram_username}` : ''}. You will receive feedback and subscription alerts here.` : 'Pro spaces can receive new feedback, payment updates, and 1–2 star alerts in one Telegram chat.'}</p>{telegramLink && <div className="telegram-link-row"><input readOnly value={telegramLink} aria-label="Telegram connection link" /><a className="button green" href={telegramLink} target="_blank" rel="noreferrer">Open Telegram</a><button className="button outline" onClick={() => void copyLink(telegramLink)}>Copy link</button></div>}</div>{!telegramLink && <button className="button outline telegram-connect" onClick={() => void connectTelegram()} disabled={telegramLoading}>{telegramLoading ? 'Creating link…' : telegramConnection?.connected ? 'Reconnect Telegram' : 'Connect Telegram'} <Bell /></button>}</section>
       <section className="share-panel"><div><p className="kicker">YOUR PUBLIC LINK</p><h2>Start collecting feedback</h2><p>Share this link or scan the QR code with any phone camera.</p></div><div className="share-content"><div className="qr-card" data-qr-id={`workspace-qr-${workspace.id}`}><QRCodeSVG value={publicLink} size={156} bgColor="#ffffff" fgColor="#132b26" includeMargin /><strong>Scan to leave feedback</strong><button className="button outline qr-download" onClick={() => void downloadQr(`workspace-qr-${workspace.id}`, `${workspace.slug}-feedback-qr`)}><Download /> Download QR</button></div><div className="share-actions"><div className="share-row"><input readOnly value={publicLink} aria-label="Public feedback link" /><button className="button outline" onClick={() => void copyLink(publicLink)}>{copied === publicLink ? <Check /> : <Copy />} {copied === publicLink ? 'Copied' : 'Copy link'}</button><a className="button outline" href={publicLink} target="_blank" rel="noreferrer"><ExternalLink /> Open</a></div></div></div></section>
       <section className="tables-panel"><div className="panel-heading"><div><h2>Tables</h2><p>Create a unique link for each table.</p></div></div><form className="inline-form" onSubmit={createTable}><input value={newTable} onChange={event => setNewTable(event.target.value)} placeholder="Table 1" required /><button className="button green" disabled={saving}><Plus /> Add table</button></form>{tables.length > 0 && <div className="table-list">{tables.map(table => { const link = `${window.location.origin}/feedback/${workspace.slug}?table=${table.id}`; return <div className="table-row" key={table.id}><div className="table-qr" data-qr-id={`table-qr-${table.id}`}><QRCodeSVG value={link} size={72} bgColor="#ffffff" fgColor="#132b26" includeMargin /><button className="qr-icon-download" onClick={() => void downloadQr(`table-qr-${table.id}`, `${table.name.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-feedback-qr`)} aria-label={`Download ${table.name} QR`}><Download /></button></div><strong>{table.name}</strong><input readOnly value={link} aria-label={`${table.name} feedback link`} /><button className="icon-button" onClick={() => void copyLink(link)} aria-label={`Copy ${table.name} link`}>{copied === link ? <Check /> : <Copy />}</button><a className="icon-button" href={link} target="_blank" rel="noreferrer" aria-label={`Open ${table.name} link`}><ExternalLink /></a><button className="icon-button danger-button" onClick={() => void deleteTable(table)} aria-label={`Delete ${table.name}`} disabled={saving}><Trash2 /></button></div> })}</div>}</section>
       <section className="feedback-panel"><div className="panel-heading"><div><h2>Recent feedback</h2><p>What your customers are saying.</p></div><button className="button outline" onClick={() => void load(true)}><RefreshCw /> Refresh</button></div>{feedback.length === 0 ? <div className="empty-feedback"><BarChart3 /><h3>No feedback yet</h3><p>Share your public link with customers to see responses here.</p></div> : <div className="feedback-list">{feedback.map(item => <article className="feedback-row" key={item.id}><div className="rating" aria-label={`${item.rating} out of 5 stars`}>{'★'.repeat(item.rating)}<span>{'★'.repeat(5 - item.rating)}</span></div><p>{item.comment}</p><time>{new Date(item.created_at).toLocaleString()}</time></article>)}</div>}</section>

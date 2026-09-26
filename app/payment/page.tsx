@@ -8,6 +8,7 @@ import { signOut as firebaseSignOut } from 'firebase/auth'
 import { createClient } from '@/lib/supabase/client'
 import { waitForFirebaseUser } from '@/lib/firebase/client'
 import Preloader from '@/components/Preloader'
+import { notifyTelegram } from '@/lib/telegram'
 
 type Workspace = { id: string; name: string; slug: string; plan: 'free' | 'pro'; status: 'active' | 'banned' }
 type Payment = { id: string; transaction_id: string; status: 'pending' | 'approved' | 'rejected'; created_at: string; admin_note: string | null }
@@ -47,7 +48,11 @@ export default function PaymentPage() {
     if (!user) { router.replace('/?auth=login'); return }
     const { error: insertError } = await supabase.from('subscription_payments').insert({ workspace_id: workspace.id, submitted_by: user.uid, amount: 199, bkash_number: '01939357037', transaction_id: transactionId.trim(), requested_plan: 'pro' })
     if (insertError) setError(insertError.code === '23505' ? 'That transaction ID has already been submitted.' : 'Could not submit the payment. Please check the transaction ID and try again.')
-    else { setMessage('Payment submitted for admin review. Your plan will change after the payment is checked.'); setTransactionId(''); await load() }
+    else {
+      setMessage('Payment submitted for admin review. Your plan will change after the payment is checked.')
+      void notifyTelegram({ workspace_slug: workspace.slug, event: 'payment_submitted', transaction_id: transactionId.trim(), status: 'pending' })
+      setTransactionId(''); await load()
+    }
     setSaving(false)
   }
 

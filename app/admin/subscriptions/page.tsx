@@ -8,6 +8,7 @@ import { signOut as firebaseSignOut } from 'firebase/auth'
 import { createClient } from '@/lib/supabase/client'
 import { firebaseAuth } from '@/lib/firebase/client'
 import Preloader from '@/components/Preloader'
+import { notifyTelegram } from '@/lib/telegram'
 
 type Payment = { id: string; workspace_id: string; workspace_name: string; workspace_slug: string; submitted_by: string; amount: number; bkash_number: string; transaction_id: string; status: 'pending' | 'approved' | 'rejected'; admin_note: string | null; created_at: string; reviewed_at: string | null }
 type Workspace = { id: string; name: string; slug: string; plan: 'free' | 'pro'; status: 'active' | 'banned'; owner_id: string; created_at: string }
@@ -46,7 +47,11 @@ export default function AdminSubscriptionsPage() {
     setBusyId(payment.id); setError(''); setMessage('')
     const { error: reviewError } = await supabase.rpc('review_subscription_payment', { payment_id: payment.id, decision, note: note[payment.id] || null })
     if (reviewError) setError(reviewError.message.includes('admin') ? 'Your account is not authorized as an admin.' : 'Could not update this payment.')
-    else { setMessage(`Payment ${payment.transaction_id} marked ${decision}.`); await load(true) }
+    else {
+      setMessage(`Payment ${payment.transaction_id} marked ${decision}.`)
+      void notifyTelegram({ workspace_slug: payment.workspace_slug, event: 'payment_updated', transaction_id: payment.transaction_id, status: decision })
+      await load(true)
+    }
     setBusyId('')
   }
 
