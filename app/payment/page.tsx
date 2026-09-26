@@ -4,7 +4,9 @@ import { useCallback, useEffect, useState } from 'react'
 import { ArrowLeft, CheckCircle2, CreditCard, ExternalLink, ShieldCheck } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+import { signOut as firebaseSignOut } from 'firebase/auth'
 import { createClient } from '@/lib/supabase/client'
+import { waitForFirebaseUser } from '@/lib/firebase/client'
 import Preloader from '@/components/Preloader'
 
 type Workspace = { id: string; name: string; slug: string; plan: 'free' | 'pro'; status: 'active' | 'banned' }
@@ -23,9 +25,9 @@ export default function PaymentPage() {
 
   const load = useCallback(async () => {
     if (!supabase) { setError('Supabase is not configured for this deployment.'); setLoading(false); return }
-    const { data: authData } = await supabase.auth.getUser()
-    if (!authData.user) { router.replace('/?auth=login'); return }
-    const { data, error: workspaceError } = await supabase.from('workspaces').select('id,name,slug,plan,status').eq('owner_id', authData.user.id).order('created_at', { ascending: true }).limit(1).maybeSingle()
+    const user = await waitForFirebaseUser()
+    if (!user) { router.replace('/?auth=login'); return }
+    const { data, error: workspaceError } = await supabase.from('workspaces').select('id,name,slug,plan,status').eq('owner_id', user.uid).order('created_at', { ascending: true }).limit(1).maybeSingle()
     if (workspaceError) setError('Could not load your café. Please try again.')
     setWorkspace(data as Workspace | null)
     if (data) {
@@ -41,9 +43,9 @@ export default function PaymentPage() {
     event.preventDefault()
     if (!supabase || !workspace || !transactionId.trim()) return
     setSaving(true); setError(''); setMessage('')
-    const { data: authData } = await supabase.auth.getUser()
-    if (!authData.user) { router.replace('/?auth=login'); return }
-    const { error: insertError } = await supabase.from('subscription_payments').insert({ workspace_id: workspace.id, submitted_by: authData.user.id, amount: 199, bkash_number: '01939357037', transaction_id: transactionId.trim(), requested_plan: 'pro' })
+    const user = await waitForFirebaseUser()
+    if (!user) { router.replace('/?auth=login'); return }
+    const { error: insertError } = await supabase.from('subscription_payments').insert({ workspace_id: workspace.id, submitted_by: user.uid, amount: 199, bkash_number: '01939357037', transaction_id: transactionId.trim(), requested_plan: 'pro' })
     if (insertError) setError(insertError.code === '23505' ? 'That transaction ID has already been submitted.' : 'Could not submit the payment. Please check the transaction ID and try again.')
     else { setMessage('Payment submitted for admin review. Your plan will change after the payment is checked.'); setTransactionId(''); await load() }
     setSaving(false)

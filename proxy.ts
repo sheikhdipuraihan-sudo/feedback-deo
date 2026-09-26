@@ -1,16 +1,7 @@
-import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
-export async function proxy(request: NextRequest) {
-  let response = NextResponse.next({ request })
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    { cookies: { getAll: () => request.cookies.getAll(), setAll: (items) => items.forEach(({ name, value, options }) => { request.cookies.set(name, value); response.cookies.set(name, value, options) }) } },
-  )
-  const { data: { user } } = await supabase.auth.getUser()
-  if (request.nextUrl.pathname.startsWith('/dashboard') && !user) return NextResponse.redirect(new URL('/?auth=login', request.url))
-  return response
+export function proxy(_request: NextRequest) {
+  return NextResponse.next()
 }
 
-export const config = { matcher: ['/dashboard/:path*'] }
+export const config = { matcher: ['/dashboard/:path*', '/payment/:path*', '/admin/:path*'] }

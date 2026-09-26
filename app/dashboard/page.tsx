@@ -5,7 +5,9 @@ import { ArrowRight, BarChart3, Check, Copy, Download, ExternalLink, LogOut, Pen
 import { QRCodeSVG } from 'qrcode.react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+import { signOut as firebaseSignOut } from 'firebase/auth'
 import { createClient } from '@/lib/supabase/client'
+import { firebaseAuth, waitForFirebaseUser } from '@/lib/firebase/client'
 import Preloader from '@/components/Preloader'
 
 type Workspace = { id: string; name: string; slug: string; plan: 'free' | 'pro'; status: 'active' | 'banned' }
@@ -55,10 +57,10 @@ export default function DashboardPage() {
     if (background) setRefreshing(true)
     else setLoading(true)
     setError('')
-    const { data: authData, error: authError } = await supabase.auth.getUser()
-    if (authError || !authData.user) { router.replace('/?auth=login'); return }
+    const user = await waitForFirebaseUser()
+    if (!user) { router.replace('/?auth=login'); return }
 
-    const workspaceResult = await supabase.from('workspaces').select('id,name,slug,plan,status').eq('owner_id', authData.user.id).order('created_at', { ascending: true }).limit(1).maybeSingle()
+    const workspaceResult = await supabase.from('workspaces').select('id,name,slug,plan,status').eq('owner_id', user.uid).order('created_at', { ascending: true }).limit(1).maybeSingle()
     if (workspaceResult.error) { setError('We could not load your workspace. Please refresh and try again.'); setLoading(false); setRefreshing(false); return }
     const nextWorkspace = workspaceResult.data as Workspace | null
     setWorkspace(nextWorkspace)
@@ -84,11 +86,11 @@ export default function DashboardPage() {
     event.preventDefault()
     if (!supabase || !newSpace.trim()) return
     setSaving(true); setMessage(''); setError('')
-    const { data: { user } } = await supabase.auth.getUser()
+    const user = await waitForFirebaseUser()
     if (!user) { router.replace('/?auth=login'); return }
     const base = newSpace.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || 'feedback-space'
     const slug = `${base}-${crypto.randomUUID().slice(0, 6)}`
-    const { error: insertError } = await supabase.from('workspaces').insert({ owner_id: user.id, name: newSpace.trim(), slug })
+    const { error: insertError } = await supabase.from('workspaces').insert({ owner_id: user.uid, name: newSpace.trim(), slug })
     if (insertError) setError(insertError.code === '23505' ? 'That space name is already in use. Please try another.' : 'Could not create the space. Please try again.')
     else { setNewSpace(''); setMessage('Your feedback space is ready.'); await load(true) }
     setSaving(false)
@@ -154,7 +156,7 @@ export default function DashboardPage() {
     image.src = imageUrl
   }
 
-  async function signOut() { if (supabase) await supabase.auth.signOut(); router.replace('/') }
+  async function signOut() { await firebaseSignOut(firebaseAuth); router.replace('/') }
   const average = useMemo(() => feedback.length ? (feedback.reduce((sum, item) => sum + item.rating, 0) / feedback.length).toFixed(1) : '—', [feedback])
   const monthFeedbackCount = useMemo(() => { const start = new Date(); start.setDate(1); start.setHours(0, 0, 0, 0); return feedback.filter(item => new Date(item.created_at) >= start).length }, [feedback])
   const publicLink = workspace ? `${window.location.origin}/feedback/${workspace.slug}` : ''

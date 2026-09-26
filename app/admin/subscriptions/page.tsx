@@ -4,7 +4,9 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Check, ChevronDown, ChevronUp, LogOut, RefreshCw, Search, ShieldCheck, X } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+import { signOut as firebaseSignOut } from 'firebase/auth'
 import { createClient } from '@/lib/supabase/client'
+import { firebaseAuth } from '@/lib/firebase/client'
 import Preloader from '@/components/Preloader'
 
 type Payment = { id: string; workspace_id: string; workspace_name: string; workspace_slug: string; submitted_by: string; amount: number; bkash_number: string; transaction_id: string; status: 'pending' | 'approved' | 'rejected'; admin_note: string | null; created_at: string; reviewed_at: string | null }
@@ -57,7 +59,7 @@ export default function AdminSubscriptionsPage() {
     setBusyId('')
   }
 
-  async function signOut() { if (supabase) await supabase.auth.signOut(); router.replace('/') }
+  async function signOut() { await firebaseSignOut(firebaseAuth); router.replace('/') }
 
   async function changeStatus(workspace: Workspace) {
     if (!supabase) return
