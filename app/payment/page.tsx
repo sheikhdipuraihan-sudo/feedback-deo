@@ -5,6 +5,7 @@ import { ArrowLeft, CheckCircle2, CreditCard, ExternalLink, ShieldCheck } from '
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
+import Preloader from '@/components/Preloader'
 
 type Workspace = { id: string; name: string; slug: string; plan: 'free' | 'pro'; status: 'active' | 'banned' }
 type Payment = { id: string; transaction_id: string; status: 'pending' | 'approved' | 'rejected'; created_at: string; admin_note: string | null }
@@ -48,7 +49,7 @@ export default function PaymentPage() {
     setSaving(false)
   }
 
-  if (loading) return <main className="dashboard-page"><div className="dashboard-shell"><p>Loading payment page…</p></div></main>
+  if (loading) return <main className="dashboard-page"><div className="dashboard-shell"><Preloader label="Loading payment page…" /></div></main>
   if (workspace?.status === 'banned') return <main className="dashboard-page"><div className="dashboard-shell"><Link className="back-link" href="/dashboard"><ArrowLeft /> Back to dashboard</Link><section className="payment-card"><h1>Workspace suspended</h1><p>This workspace cannot submit payment requests while it is suspended.</p></section></div></main>
   if (!workspace) return <main className="dashboard-page"><div className="dashboard-shell"><Link className="back-link" href="/dashboard"><ArrowLeft /> Back to dashboard</Link><section className="payment-card"><h1>Create your café space first</h1><p>You need a café workspace before upgrading.</p><Link className="button green" href="/dashboard">Open dashboard</Link></section></div></main>
 

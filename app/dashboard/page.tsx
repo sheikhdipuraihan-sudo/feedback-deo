@@ -6,6 +6,7 @@ import { QRCodeSVG } from 'qrcode.react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
+import Preloader from '@/components/Preloader'
 
 type Workspace = { id: string; name: string; slug: string; plan: 'free' | 'pro'; status: 'active' | 'banned' }
 type Feedback = { id: string; rating: number; comment: string; created_at: string }
@@ -158,7 +159,7 @@ export default function DashboardPage() {
   const monthFeedbackCount = useMemo(() => { const start = new Date(); start.setDate(1); start.setHours(0, 0, 0, 0); return feedback.filter(item => new Date(item.created_at) >= start).length }, [feedback])
   const publicLink = workspace ? `${window.location.origin}/feedback/${workspace.slug}` : ''
 
-  if (loading && !workspace) return <main className="dashboard-page"><div className="dashboard-shell"><p>Loading your workspace…</p></div></main>
+  if (loading && !workspace) return <main className="dashboard-page"><div className="dashboard-shell"><Preloader label="Loading your workspace…" /></div></main>
   if (workspace?.status === 'banned') return <main className="dashboard-page"><div className="dashboard-shell"><header className="dashboard-header"><Link className="brand" href="/">feedback <span>deo</span>.</Link><button className="logout" onClick={signOut}><LogOut /> Log out</button></header><section className="suspended-card"><h1>Workspace suspended</h1><p>This café workspace has been paused by the Feedback Deo admin team. Public feedback and plan changes are disabled.</p><button className="button outline" onClick={signOut}>Log out</button></section></div></main>
   return <main className="dashboard-page"><div className="dashboard-shell">
     <header className="dashboard-header"><Link className="brand" href="/">feedback <span>deo</span>.</Link><div className="dash-actions"><button className="icon-button" onClick={() => void load(true)} disabled={refreshing} aria-label="Refresh dashboard"><RefreshCw className={refreshing ? 'spin' : ''} /></button><button className="logout" onClick={signOut}><LogOut /> Log out</button></div></header>
