@@ -4,7 +4,8 @@ export function getFirebaseAdminAuth() {
   if (adminAuthPromise) return adminAuthPromise
   adminAuthPromise = Promise.all([import('firebase-admin/app'), import('firebase-admin/auth')]).then(([appModule, authModule]) => {
     const { cert, getApp, getApps, initializeApp } = appModule
-    const serviceAccountJson = process.env.FIREBASE_SERVICE_ACCOUNT_JSON
+    const encoded = process.env.FIREBASE_SERVICE_ACCOUNT_B64
+    const serviceAccountJson = encoded ? Buffer.from(encoded, 'base64').toString('utf8') : process.env.FIREBASE_SERVICE_ACCOUNT_JSON
     const raw = serviceAccountJson ? JSON.parse(serviceAccountJson) : null
     const credentials = raw ? {
       projectId: raw.projectId || raw.project_id,
