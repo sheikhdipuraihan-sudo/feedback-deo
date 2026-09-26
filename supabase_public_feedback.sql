@@ -38,3 +38,19 @@ begin
 end;
 $$;
 grant execute on function public.review_subscription_payment(uuid, text, text) to authenticated;
+
+-- Firebase third-party auth admin mapping.
+alter table public.subscription_admins add column if not exists firebase_uid text;
+update public.subscription_admins set firebase_uid = 'nyiJyjhI1DNchm5kuU6nkgDfVLG2' where lower(email) = lower('contact.anidaku@gmail.com');
+create or replace function public.is_subscription_admin()
+returns boolean
+language sql
+security definer
+set search_path = public
+as $$
+  select exists (
+    select 1 from public.subscription_admins a
+    where a.firebase_uid = (auth.jwt() ->> 'sub')
+       or lower(a.email) = lower(coalesce(auth.jwt() ->> 'email', auth.jwt() ->> 'user_email', ''))
+  );
+$$;
