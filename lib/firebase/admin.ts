@@ -9,7 +9,7 @@ export function getFirebaseAdminAuth() {
     const credentials = raw ? {
       projectId: raw.projectId || raw.project_id,
       clientEmail: raw.clientEmail || raw.client_email,
-      privateKey: raw.privateKey || raw.private_key,
+      privateKey: (raw.privateKey || raw.private_key)?.replace(/\\n/g, '\n'),
     } : {
       projectId: process.env.FIREBASE_PROJECT_ID,
       clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
