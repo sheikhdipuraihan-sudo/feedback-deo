@@ -75,3 +75,22 @@ end;
 $$;
 
 grant execute on function public.submit_public_feedback(text, integer, text, uuid) to anon, authenticated;
+
+create or replace function public.prevent_workspace_slug_change()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if new.slug is distinct from old.slug then
+    raise exception 'workspace uid cannot be changed';
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists workspace_slug_immutable on public.workspaces;
+create trigger workspace_slug_immutable
+before update on public.workspaces
+for each row execute function public.prevent_workspace_slug_change();
