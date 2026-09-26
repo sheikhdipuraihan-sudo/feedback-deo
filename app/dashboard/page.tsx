@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { BarChart3, Check, Copy, ExternalLink, LogOut, Plus, RefreshCw, Star } from 'lucide-react'
+import { ArrowRight, BarChart3, Check, Copy, ExternalLink, LogOut, Pencil, Plus, RefreshCw, Star, Trash2 } from 'lucide-react'
 import { QRCodeSVG } from 'qrcode.react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
@@ -29,6 +29,8 @@ export default function DashboardPage() {
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
   const [copied, setCopied] = useState('')
+  const [editingName, setEditingName] = useState(false)
+  const [workspaceName, setWorkspaceName] = useState('')
 
   const cacheKey = workspace ? `${CACHE_PREFIX}${workspace.id}` : `${CACHE_PREFIX}current`
   const saveCache = useCallback((payload: CachePayload) => {
@@ -91,6 +93,26 @@ export default function DashboardPage() {
     setSaving(false)
   }
 
+
+  async function renameWorkspace(event: React.FormEvent) {
+    event.preventDefault()
+    if (!supabase || !workspace || !workspaceName.trim()) return
+    setSaving(true); setMessage(''); setError('')
+    const { error: updateError } = await supabase.from('workspaces').update({ name: workspaceName.trim() }).eq('id', workspace.id)
+    if (updateError) setError('Could not update the café name. Please try again.')
+    else { setEditingName(false); setMessage('Café name updated.'); await load(true) }
+    setSaving(false)
+  }
+
+  async function deleteTable(table: FeedbackTable) {
+    if (!supabase || !workspace || !window.confirm(`Delete ${table.name}? Its QR link will stop working.`)) return
+    setSaving(true); setMessage(''); setError('')
+    const { error: deleteError } = await supabase.from('tables').delete().eq('id', table.id).eq('workspace_id', workspace.id)
+    if (deleteError) setError('Could not delete that table. Existing feedback may be linked to it.')
+    else { setMessage(`${table.name} deleted.`); await load(true) }
+    setSaving(false)
+  }
+
   async function createTable(event: React.FormEvent) {
     event.preventDefault()
     if (!supabase || !workspace || !newTable.trim()) return
@@ -113,13 +135,14 @@ export default function DashboardPage() {
   if (loading && !workspace) return <main className="dashboard-page"><div className="dashboard-shell"><p>Loading your workspace…</p></div></main>
   return <main className="dashboard-page"><div className="dashboard-shell">
     <header className="dashboard-header"><Link className="brand" href="/">feedback <span>deo</span>.</Link><div className="dash-actions"><button className="icon-button" onClick={() => void load(true)} disabled={refreshing} aria-label="Refresh dashboard"><RefreshCw className={refreshing ? 'spin' : ''} /></button><button className="logout" onClick={signOut}><LogOut /> Log out</button></div></header>
-    <div className="dashboard-title"><div><p className="kicker">YOUR WORKSPACE</p><h1>{workspace?.name || 'Welcome to Feedback Deo'}</h1><p>Collect honest feedback and turn it into your next best decision.</p></div></div>
+    <div className="dashboard-title"><div>{editingName ? <form className="name-edit-form" onSubmit={renameWorkspace}><input value={workspaceName} onChange={event => setWorkspaceName(event.target.value)} aria-label="Café name" autoFocus required /><button className="button green" disabled={saving}>Save</button><button type="button" className="button outline" onClick={() => setEditingName(false)}>Cancel</button></form> : <div className="title-copy"><p className="kicker">YOUR WORKSPACE</p><h1>{workspace?.name || 'Welcome to Feedback Deo'} {workspace ? <button className="title-edit" onClick={() => { setWorkspaceName(workspace.name); setEditingName(true) }} aria-label="Edit café name"><Pencil /></button> : null}</h1></div>}<p>Collect honest feedback and turn it into your next best decision.</p></div></div>
     {error && <p className="form-error" role="alert">{error}</p>}
     {message && <p className="form-success" role="status">{message}</p>}
     {!workspace ? <section className="setup-card"><div className="setup-icon"><Plus /></div><h2>Create your first feedback space</h2><p>Start with your business name, then share your public feedback link with customers.</p><form onSubmit={createWorkspace}><input value={newSpace} onChange={(event) => setNewSpace(event.target.value)} placeholder="The Commons Café" required /><button className="button green" disabled={saving}>{saving ? 'Creating…' : 'Create space'} <Plus /></button></form></section> : <>
       <div className="stats-grid"><div className="stat-card"><small>AVERAGE RATING</small><strong>{average} <Star className="stat-star" fill="currentColor" /></strong><span>{workspace?.plan === 'pro' ? 'Unlimited on Pro' : `Free plan · ${monthFeedbackCount}/30 this month`}</span></div><div className="stat-card"><small>TOTAL FEEDBACK</small><strong>{feedback.length}</strong><span>Anonymous responses</span></div><div className="stat-card"><small>SPACE STATUS</small><strong className="status-live">Live</strong><span>Ready to collect</span></div></div>
+      <section className="plan-banner"><div><p className="kicker">YOUR PLAN</p><h2>{workspace?.plan === 'pro' ? 'Pro · unlimited feedback' : `${Math.max(0, 30 - monthFeedbackCount)} feedback left this month`}</h2><p>{workspace?.plan === 'pro' ? 'Your space can collect as much feedback as you need.' : 'Free spaces include 30 feedback submissions each calendar month.'}</p></div>{workspace?.plan !== 'pro' && <Link className="button green" href="/#pricing">Upgrade to Pro <ArrowRight /></Link>}</section>
       <section className="share-panel"><div><p className="kicker">YOUR PUBLIC LINK</p><h2>Start collecting feedback</h2><p>Share this link or scan the QR code with any phone camera.</p></div><div className="share-content"><div className="qr-card"><QRCodeSVG value={publicLink} size={156} bgColor="#ffffff" fgColor="#132b26" includeMargin /><strong>Scan to leave feedback</strong></div><div className="share-actions"><div className="share-row"><input readOnly value={publicLink} aria-label="Public feedback link" /><button className="button outline" onClick={() => void copyLink(publicLink)}>{copied === publicLink ? <Check /> : <Copy />} {copied === publicLink ? 'Copied' : 'Copy link'}</button><a className="button outline" href={publicLink} target="_blank" rel="noreferrer"><ExternalLink /> Open</a></div></div></div></section>
-      <section className="tables-panel"><div className="panel-heading"><div><h2>Tables</h2><p>Create a unique link for each table.</p></div></div><form className="inline-form" onSubmit={createTable}><input value={newTable} onChange={event => setNewTable(event.target.value)} placeholder="Table 1" required /><button className="button green" disabled={saving}><Plus /> Add table</button></form>{tables.length > 0 && <div className="table-list">{tables.map(table => { const link = `${window.location.origin}/feedback/${workspace.slug}?table=${table.id}`; return <div className="table-row" key={table.id}><div className="table-qr"><QRCodeSVG value={link} size={72} bgColor="#ffffff" fgColor="#132b26" includeMargin /></div><strong>{table.name}</strong><input readOnly value={link} aria-label={`${table.name} feedback link`} /><button className="icon-button" onClick={() => void copyLink(link)} aria-label={`Copy ${table.name} link`}>{copied === link ? <Check /> : <Copy />}</button><a className="icon-button" href={link} target="_blank" rel="noreferrer" aria-label={`Open ${table.name} link`}><ExternalLink /></a></div> })}</div>}</section>
+      <section className="tables-panel"><div className="panel-heading"><div><h2>Tables</h2><p>Create a unique link for each table.</p></div></div><form className="inline-form" onSubmit={createTable}><input value={newTable} onChange={event => setNewTable(event.target.value)} placeholder="Table 1" required /><button className="button green" disabled={saving}><Plus /> Add table</button></form>{tables.length > 0 && <div className="table-list">{tables.map(table => { const link = `${window.location.origin}/feedback/${workspace.slug}?table=${table.id}`; return <div className="table-row" key={table.id}><div className="table-qr"><QRCodeSVG value={link} size={72} bgColor="#ffffff" fgColor="#132b26" includeMargin /></div><strong>{table.name}</strong><input readOnly value={link} aria-label={`${table.name} feedback link`} /><button className="icon-button" onClick={() => void copyLink(link)} aria-label={`Copy ${table.name} link`}>{copied === link ? <Check /> : <Copy />}</button><a className="icon-button" href={link} target="_blank" rel="noreferrer" aria-label={`Open ${table.name} link`}><ExternalLink /></a><button className="icon-button danger-button" onClick={() => void deleteTable(table)} aria-label={`Delete ${table.name}`} disabled={saving}><Trash2 /></button></div> })}</div>}</section>
       <section className="feedback-panel"><div className="panel-heading"><div><h2>Recent feedback</h2><p>What your customers are saying.</p></div><button className="button outline" onClick={() => void load(true)}><RefreshCw /> Refresh</button></div>{feedback.length === 0 ? <div className="empty-feedback"><BarChart3 /><h3>No feedback yet</h3><p>Share your public link with customers to see responses here.</p></div> : <div className="feedback-list">{feedback.map(item => <article className="feedback-row" key={item.id}><div className="rating" aria-label={`${item.rating} out of 5 stars`}>{'★'.repeat(item.rating)}<span>{'★'.repeat(5 - item.rating)}</span></div><p>{item.comment}</p><time>{new Date(item.created_at).toLocaleString()}</time></article>)}</div>}</section>
     </>}
   </div></main>
