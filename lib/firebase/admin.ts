@@ -5,13 +5,16 @@ export function getFirebaseAdminAuth() {
   adminAuthPromise = Promise.all([import('firebase-admin/app'), import('firebase-admin/auth')]).then(([appModule, authModule]) => {
     const { cert, getApp, getApps, initializeApp } = appModule
     const serviceAccountJson = process.env.FIREBASE_SERVICE_ACCOUNT_JSON
-    const credentials = serviceAccountJson
-      ? JSON.parse(serviceAccountJson)
-      : {
-          projectId: process.env.FIREBASE_PROJECT_ID,
-          clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-          privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
-        }
+    const raw = serviceAccountJson ? JSON.parse(serviceAccountJson) : null
+    const credentials = raw ? {
+      projectId: raw.projectId || raw.project_id,
+      clientEmail: raw.clientEmail || raw.client_email,
+      privateKey: raw.privateKey || raw.private_key,
+    } : {
+      projectId: process.env.FIREBASE_PROJECT_ID,
+      clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+      privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
+    }
     if (!credentials.projectId || !credentials.clientEmail || !credentials.privateKey) throw new Error('Firebase Admin environment is not configured.')
     const app = getApps().length ? getApp() : initializeApp({ credential: cert(credentials) })
     return authModule.getAuth(app)
