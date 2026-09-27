@@ -114,3 +114,6 @@
 
 /* Shared navigation pages no longer need standalone header spacing. */
 .qr-page-shell>.qr-page-intro{margin-top:0}
+
+/* Pro status is a compact workspace badge; the Free plan banner remains actionable. */
+.title-settings .pro-badge{display:inline-flex;align-items:center;justify-content:center;padding:7px 11px;border:1px solid #ded4ff;border-radius:999px;background:#f0ecff;color:#5835c9;font-size:11px;font-weight:800;letter-spacing:.08em;line-height:1;white-space:nowrap}
