@@ -4,7 +4,7 @@ import RouteProgress from "@/components/RouteProgress"
 
 export const metadata: Metadata = {
   title: "feedback deo — Know what your customers really think",
-  description: "Simple QR feedback for restaurants and local businesses in Bangladesh.",
+  description: "QR feedback, customer insights, and AI tools for restaurants, retailers, salons, clinics, schools, and businesses of every kind.",
 }
 
 export const viewport: Viewport = {
