@@ -49,3 +49,11 @@
 .dashboard-shell{width:100%;min-height:100dvh;border-radius:0;box-shadow:none}
 .dashboard-mark b{color:var(--green);font-weight:700}.dashboard-mark small{font-size:inherit;color:var(--green);margin-left:0}
 @media(max-width:900px){.dashboard-page{padding:0}.dashboard-shell{border-radius:0}}
+
+/* Standalone route fix: Billing and loading states must not inherit the dashboard grid */
+.dashboard-shell:has(.payment-card),.dashboard-shell:has(.preloader),.dashboard-shell:has(.suspended-card){display:block;padding:clamp(24px,5vw,72px);background:var(--cream)}
+.dashboard-shell:has(.preloader){display:grid;place-items:center;min-height:100dvh}
+.dashboard-shell:has(.payment-card) .payment-card,.dashboard-shell:has(.payment-card) .payment-history{margin-left:auto;margin-right:auto}
+.dashboard-shell:has(.payment-card) .back-link{margin-bottom:18px}
+.preloader{min-height:180px;width:min(100%,420px);padding:35px;background:#fff;border:1px solid var(--line);border-radius:14px;box-shadow:0 20px 60px #16433312}
+.preloader-mark i{background:var(--green);box-shadow:0 2px 8px #1c9c6a33}
