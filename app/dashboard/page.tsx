@@ -1,13 +1,13 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { ArrowRight, BarChart3, Bell, BrainCircuit, Check, Copy, CreditCard, LayoutDashboard, LogOut, MessageCircle, Pencil, Plus, QrCode, RefreshCw, Search, Settings2, Star, Store } from 'lucide-react'
+import { ArrowRight, BarChart3, Bell, Check, Copy, MessageCircle, Pencil, Plus, RefreshCw, Search, Settings2, Star } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { signOut as firebaseSignOut } from 'firebase/auth'
 import { createClient } from '@/lib/supabase/client'
-import { firebaseAuth, waitForFirebaseUser } from '@/lib/firebase/client'
+import { waitForFirebaseUser } from '@/lib/firebase/client'
 import Preloader from '@/components/Preloader'
+import DashboardPageFrame from '@/components/DashboardPageFrame'
 import { BUSINESS_TYPES, getBusinessTypeLabel, type BusinessType } from '@/lib/business-types'
 
 type Workspace = { id: string; name: string; slug: string; plan: 'free' | 'pro'; status: 'active' | 'banned'; business_type?: BusinessType }
@@ -35,6 +35,7 @@ export default function DashboardPage() {
   const [telegramConnection, setTelegramConnection] = useState<TelegramConnection | null>(null)
   const [telegramLink, setTelegramLink] = useState('')
   const [telegramLoading, setTelegramLoading] = useState(false)
+  const [telegramUpgradeOpen, setTelegramUpgradeOpen] = useState(false)
   const [feedbackQuery, setFeedbackQuery] = useState('')
 
   const cacheKey = workspace ? `${CACHE_PREFIX}${workspace.id}` : `${CACHE_PREFIX}current`
@@ -126,7 +127,8 @@ export default function DashboardPage() {
   }
 
   async function connectTelegram() {
-    if (!supabase || workspace?.plan !== 'pro') return
+    if (workspace?.plan !== 'pro') { setTelegramUpgradeOpen(true); return }
+    if (!supabase) return
     setTelegramLoading(true); setError(''); setMessage('')
     const { data, error: tokenError } = await supabase.rpc('create_telegram_link_token')
     if (tokenError || !data) setError(tokenError?.message.includes('pro') ? 'Telegram notifications are available on Pro.' : 'Could not create a Telegram connection link.')
@@ -138,17 +140,15 @@ export default function DashboardPage() {
     try { await navigator.clipboard.writeText(link); setCopied(link); window.setTimeout(() => setCopied(''), 1800) } catch { setError('Copy failed. You can select the link manually.') }
   }
 
-  async function signOut() { await firebaseSignOut(firebaseAuth); router.replace('/') }
   const average = useMemo(() => feedback.length ? (feedback.reduce((sum, item) => sum + item.rating, 0) / feedback.length).toFixed(1) : '—', [feedback])
   const monthFeedbackCount = useMemo(() => { const start = new Date(); start.setDate(1); start.setHours(0, 0, 0, 0); return feedback.filter(item => new Date(item.created_at) >= start).length }, [feedback])
   const filteredFeedback = useMemo(() => { const query = feedbackQuery.trim().toLowerCase(); return query ? feedback.filter(item => item.comment.toLowerCase().includes(query) || String(item.rating).includes(query)) : feedback }, [feedback, feedbackQuery])
 
-  if (loading && !workspace) return <main className="dashboard-page"><div className="dashboard-shell standalone-shell"><Preloader label="Loading your workspace…" /></div></main>
-  if (workspace?.status === 'banned') return <main className="dashboard-page"><div className="dashboard-shell standalone-shell"><header className="dashboard-header"><Link className="brand" href="/">feedback <span>deo</span>.</Link><button className="logout" onClick={signOut}><LogOut /> Log out</button></header><section className="suspended-card"><h1>Workspace suspended</h1><p>This business workspace has been paused by the Feedback Deo admin team. Public feedback and plan changes are disabled.</p><button className="button outline" onClick={signOut}>Log out</button></section></div></main>
-  return <main className="dashboard-page"><div className="dashboard-shell">
-    <aside className="dashboard-sidebar"><Link className="dashboard-mark" href="/"><span>feedback <b>deo</b><small>.</small></span></Link><nav className="dashboard-nav" aria-label="Dashboard navigation"><a className="active" href="#overview"><LayoutDashboard /> Overview</a><a href="#space"><Store /> Feedback space</a><Link href="/qr"><QrCode /> QR &amp; Links</Link><a href="#telegram"><MessageCircle /> Telegram alerts</a><Link href="/ai"><BrainCircuit /> Feedback Deo AI</Link><Link href="/payment"><CreditCard /> Billing <span className="nav-chevron">›</span></Link><button className="sidebar-nav-logout" onClick={signOut}><LogOut /> Log out</button></nav></aside>
-    <div className="dashboard-main">
-    <header className="dashboard-header dashboard-mobile-header"><div className="mobile-brand"><Link className="brand" href="/">feedback <span>deo</span>.</Link></div><div className="dash-actions"><Link className="icon-button qr-mobile-link" href="/qr" aria-label="QR & Links" title="QR & Links"><QrCode /></Link></div></header>
+  if (loading && !workspace) return <DashboardPageFrame><Preloader label="Loading your workspace…" /></DashboardPageFrame>
+  if (workspace?.status === 'banned') return <DashboardPageFrame><section className="suspended-card"><h1>Workspace suspended</h1><p>This business workspace has been paused by the Feedback Deo admin team. Public feedback and plan changes are disabled.</p></section></DashboardPageFrame>
+  return <DashboardPageFrame>
+
+
     <div className="dashboard-title" id="overview"><div>{editingName ? <form className="name-edit-form" onSubmit={renameWorkspace}><input value={workspaceName} onChange={event => setWorkspaceName(event.target.value)} aria-label="Business name" autoFocus required /><button className="button green" disabled={saving}>Save</button><button type="button" className="button outline" onClick={() => setEditingName(false)}>Cancel</button></form> : <div className="title-copy"><p className="kicker">YOUR WORKSPACE</p><h1>Welcome, {workspace?.name || 'there'} {workspace ? <button className="title-edit" onClick={() => { setWorkspaceName(workspace.name); setEditingName(true) }} aria-label="Edit business name"><Pencil /></button> : null}</h1>{workspace && <p className="workspace-uid">UID <code>{workspace.slug}</code><span>Permanent workspace identifier</span></p>}</div>}<p>Collect honest feedback and turn it into your next best decision.</p></div><div className="title-settings"><Settings2 /> <span>{workspace?.plan === 'pro' ? 'Pro workspace' : 'Free workspace'}</span>{workspace && <label className="business-type-control"><span>Business type</span><select className="business-type-select" value={workspace.business_type || 'restaurant'} onChange={event => void changeBusinessType(event.target.value as BusinessType)} disabled={saving} aria-label="Business type">{BUSINESS_TYPES.map(type => <option key={type.id} value={type.id}>{type.label}</option>)}</select></label>}</div></div>
     {error && <p className="form-error" role="alert">{error}</p>}
     {message && <p className="form-success" role="status">{message}</p>}
@@ -158,6 +158,6 @@ export default function DashboardPage() {
       <section className="telegram-panel" id="telegram"><div className="telegram-panel-icon"><MessageCircle /></div><div className="telegram-panel-copy"><p className="kicker">TELEGRAM ALERTS</p><h2>{telegramConnection?.connected ? 'Telegram is connected' : 'Get alerts in Telegram'}</h2><p>{telegramConnection?.connected ? `Connected${telegramConnection.telegram_username ? ` to @${telegramConnection.telegram_username}` : ''}. You will receive feedback and subscription alerts here.` : 'Pro spaces can receive new feedback, payment updates, and 1–2 star alerts in one Telegram chat.'}</p>{telegramLink && <div className="telegram-link-row"><input readOnly value={telegramLink} aria-label="Telegram connection link" /><a className="button green" href={telegramLink} target="_blank" rel="noreferrer">Open Telegram</a><button className="button outline" onClick={() => void copyLink(telegramLink)}>Copy link</button></div>}</div>{!telegramLink && <button className="button outline telegram-connect" onClick={() => void connectTelegram()} disabled={telegramLoading}>{telegramLoading ? 'Creating link…' : telegramConnection?.connected ? 'Reconnect Telegram' : 'Connect Telegram'} <Bell /></button>}</section>
       <section className="feedback-panel" id="feedback"><div className="panel-heading"><div><h2>Recent feedback</h2><p>{feedbackQuery ? `Showing matches for “${feedbackQuery}”.` : 'What your customers are saying.'}</p></div><div className="feedback-heading-actions"><div className="feedback-search"><Search /><input value={feedbackQuery} onChange={event => setFeedbackQuery(event.target.value)} placeholder="Search feedback" aria-label="Search feedback" /></div><button className="button outline" onClick={() => void load(true)} disabled={refreshing}><RefreshCw className={refreshing ? 'spin' : ''} /> Refresh</button></div></div>{feedback.length === 0 ? <div className="empty-feedback"><BarChart3 /><h3>No feedback yet</h3><p>Share your public link with customers to see responses here.</p></div> : filteredFeedback.length === 0 ? <div className="empty-feedback"><Search /><h3>No matching feedback</h3><p>Try another search term.</p></div> : <div className="feedback-list">{filteredFeedback.map(item => <article className="feedback-row" key={item.id}><div className="rating" aria-label={`${item.rating} out of 5 stars`}>{Array.from({ length: 5 }, (_, index) => <Star key={index} className="rating-star" fill={index < item.rating ? 'currentColor' : 'none'} stroke={index < item.rating ? 'currentColor' : 'var(--line)'} />)}</div><p>{item.comment}</p><time>{new Date(item.created_at).toLocaleString()}</time></article>)}</div>}</section>
     </>}
-    </div>
-  </div></main>
+    {telegramUpgradeOpen && <div className="modal-backdrop qr-upgrade-backdrop" role="presentation" onMouseDown={event => { if (event.target === event.currentTarget) setTelegramUpgradeOpen(false) }}><section className="modal qr-upgrade-modal" role="dialog" aria-modal="true" aria-labelledby="telegram-upgrade-title"><button className="modal-close" onClick={() => setTelegramUpgradeOpen(false)} aria-label="Close Telegram upgrade prompt">×</button><p className="kicker">PRO FEATURE</p><h2 id="telegram-upgrade-title">Upgrade to Pro to connect Telegram</h2><p>Telegram alerts are included with Pro. Upgrade to get new feedback, subscription updates, and low-rating alerts sent to your Telegram chat.</p><Link className="button green full" href="/payment" onClick={() => setTelegramUpgradeOpen(false)}>Upgrade to Pro <ArrowRight /></Link></section></div>}
+  </DashboardPageFrame>
 }

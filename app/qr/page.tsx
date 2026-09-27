@@ -1,15 +1,15 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
-import { ArrowLeft, ArrowRight, Check, Copy, Download, ExternalLink, LockKeyhole, Plus, QrCode, Trash2, Upload } from 'lucide-react'
+import { ArrowRight, Check, Copy, Download, ExternalLink, LockKeyhole, Plus, QrCode, Trash2, Upload } from 'lucide-react'
 import { toPng } from 'html-to-image'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { signOut as firebaseSignOut } from 'firebase/auth'
 import { createClient } from '@/lib/supabase/client'
-import { firebaseAuth, waitForFirebaseUser } from '@/lib/firebase/client'
+import { waitForFirebaseUser } from '@/lib/firebase/client'
 import BrandedQr from '@/components/BrandedQr'
 import Preloader from '@/components/Preloader'
+import DashboardPageFrame from '@/components/DashboardPageFrame'
 
 type Workspace = {
   id: string
@@ -163,7 +163,6 @@ export default function QrLinksPage() {
     setSaving(false)
   }
 
-  async function signOut() { await firebaseSignOut(firebaseAuth); router.replace('/') }
 
   const origin = typeof window === 'undefined' ? '' : window.location.origin
   const publicLink = workspace && origin ? `${origin}/feedback/${workspace.slug}` : ''
@@ -171,12 +170,11 @@ export default function QrLinksPage() {
   const qrColor = workspace?.plan === 'pro' ? workspace.qr_brand_color || '#132b26' : '#132b26'
   const qrLayout = workspace?.plan === 'pro' ? workspace.qr_layout || 'stacked' : 'stacked'
 
-  if (loading) return <main className="dashboard-page"><div className="dashboard-shell standalone-shell"><Preloader label="Loading QR & links…" /></div></main>
-  if (workspace?.status === 'banned') return <main className="dashboard-page"><div className="dashboard-shell standalone-shell"><section className="payment-card"><h1>Workspace suspended</h1><p className="payment-lead">QR and link management is unavailable while this workspace is suspended.</p><Link className="button outline" href="/dashboard">Back to dashboard</Link></section></div></main>
-  if (!workspace) return <main className="dashboard-page"><div className="dashboard-shell standalone-shell"><section className="payment-card"><div className="payment-icon"><QrCode /></div><h1>Create your feedback space first</h1><p className="payment-lead">Your workspace’s QR code and public links will appear here.</p><Link className="button green" href="/dashboard">Open dashboard <ArrowRight /></Link></section></div></main>
+  if (loading) return <DashboardPageFrame mainClassName="ai-page-shell qr-page-shell"><Preloader label="Loading QR & links…" /></DashboardPageFrame>
+  if (workspace?.status === 'banned') return <DashboardPageFrame mainClassName="ai-page-shell qr-page-shell"><section className="payment-card"><h1>Workspace suspended</h1><p className="payment-lead">QR and link management is unavailable while this workspace is suspended.</p><Link className="button outline" href="/dashboard">Back to dashboard</Link></section></DashboardPageFrame>
+  if (!workspace) return <DashboardPageFrame mainClassName="ai-page-shell qr-page-shell"><section className="payment-card"><div className="payment-icon"><QrCode /></div><h1>Create your feedback space first</h1><p className="payment-lead">Your workspace’s QR code and public links will appear here.</p><Link className="button green" href="/dashboard">Open dashboard <ArrowRight /></Link></section></DashboardPageFrame>
 
-  return <main className="dashboard-page"><div className="dashboard-shell standalone-shell ai-page-shell qr-page-shell">
-    <header className="ai-page-header"><Link className="back-link" href="/dashboard"><ArrowLeft /> Back to dashboard</Link><Link className="dashboard-mark ai-brand" href="/"><span>feedback <b>deo</b><small>.</small></span></Link><button className="logout" onClick={signOut}>Log out</button></header>
+  return <DashboardPageFrame mainClassName="ai-page-shell qr-page-shell">
     <section className="ai-page-intro qr-page-intro"><div><p className="kicker">QR &amp; LINKS</p><h1>Your QR codes and share links.</h1><p>This page is separate from your dashboard home. Your QR opens the public feedback link; create a named feedback point for each counter, room, stylist, class, table, or service area.</p></div><div className="ai-intro-icon"><QrCode /></div></section>
     {error && <p className="form-error" role="alert">{error}</p>}
     {message && <p className="form-success" role="status">{message}</p>}
@@ -188,5 +186,5 @@ export default function QrLinksPage() {
     </section>
     <section className="tables-panel qr-tables-panel"><div className="panel-heading"><div><p className="kicker">FEEDBACK POINTS</p><h2>Give each point its own QR and link</h2><p>These links are different from your general public feedback link.</p></div><button className="button outline" type="button" onClick={() => void load(true)} disabled={refreshing}>{refreshing ? 'Refreshing…' : 'Refresh links'}</button></div><form className="inline-form" onSubmit={createTable}><input value={newTable} onChange={event => setNewTable(event.target.value)} placeholder="e.g. Checkout, stylist, classroom" required /><button className="button green" disabled={saving}><Plus /> Add feedback point</button></form>{tables.length === 0 ? <div className="qr-tables-empty"><QrCode /><strong>No feedback points yet</strong><p>Add a point to create its own share link and downloadable QR code.</p></div> : <div className="table-list">{tables.map(table => { const link = `${origin}/feedback/${workspace.slug}?table=${table.id}`; const tableQrId = `table-qr-${table.id}`; return <div className="table-row" key={table.id}><div className="table-qr" data-qr-id={tableQrId}><BrandedQr compact value={link} businessName={workspace.qr_business_name ?? workspace.name} logo={workspace.qr_logo} brandText={workspace.qr_brand_text} brandColor={qrColor} theme={qrTheme} layout={qrLayout} /><button className="qr-icon-download" type="button" onClick={() => void downloadQr(tableQrId, `${table.name.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-feedback-qr`)} aria-label={`Download ${table.name} QR`}><Download /></button></div><strong>{table.name}</strong><input readOnly value={link} aria-label={`${table.name} feedback link`} /><button className="icon-button" type="button" onClick={() => void copyLink(link)} aria-label={`Copy ${table.name} link`}>{copied === link ? <Check /> : <Copy />}</button><a className="icon-button" href={link} target="_blank" rel="noreferrer" aria-label={`Open ${table.name} link`}><ExternalLink /></a><button className="icon-button danger-button" type="button" onClick={() => void deleteTable(table)} aria-label={`Delete ${table.name}`} disabled={saving}><Trash2 /></button></div> })}</div>}</section>
     {upgradeOpen && <div className="modal-backdrop qr-upgrade-backdrop" role="presentation" onMouseDown={event => { if (event.target === event.currentTarget) setUpgradeOpen(false) }}><section className="modal qr-upgrade-modal" role="dialog" aria-modal="true" aria-labelledby="qr-upgrade-title"><button className="modal-close" onClick={() => setUpgradeOpen(false)} aria-label="Close upgrade prompt">×</button><p className="kicker">PRO QR THEMES</p><h2 id="qr-upgrade-title">Unlock premium QR styles</h2><p>Upgrade to Pro to use all 15 QR themes, custom brand colors, and advanced layouts. The Free plan keeps the standard scannable QR.</p><ul><li>15 professional, scan-friendly designs</li><li>Advanced branding and custom colors</li><li>Premium layouts for your business</li></ul><Link className="button green full" href="/payment">Upgrade to Pro <ArrowRight /></Link></section></div>}
-  </div></main>
+  </DashboardPageFrame>
 }
