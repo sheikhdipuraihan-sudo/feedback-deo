@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next"
 import "./globals.css"
+import RouteProgress from "@/components/RouteProgress"
 
 export const metadata: Metadata = {
   title: "feedback deo — Know what your customers really think",
@@ -14,5 +15,5 @@ export const viewport: Viewport = {
 }
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
-  return <html lang="en"><body>{children}</body></html>
+  return <html lang="en"><body><RouteProgress />{children}</body></html>
 }
