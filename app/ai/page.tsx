@@ -139,7 +139,7 @@ export default function FeedbackDeoAiPage() {
     finally { setChatLoading(false) }
   }
 
-  if (loading) return <DashboardPageFrame mainClassName="ai-page-shell"><Preloader label="Loading Feedback Deo AI…" /></DashboardPageFrame>
+  if (loading) return <Preloader label="Loading Feedback Deo AI…" />
   if (!workspace) return <DashboardPageFrame mainClassName="ai-page-shell"><section className="payment-card"><div className="payment-icon"><BrainCircuit /></div><h1>Create your business workspace first</h1><p className="payment-lead">Feedback Deo AI works for restaurants, salons, shops, hotels, clinics, gyms, schools, service businesses, and more.</p><Link className="button green" href="/dashboard">Open dashboard <ArrowRight /></Link></section></DashboardPageFrame>
   if (workspace.status === 'banned') return <DashboardPageFrame mainClassName="ai-page-shell"><section className="payment-card"><h1>Workspace suspended</h1><p className="payment-lead">Feedback Deo AI is unavailable while this workspace is suspended.</p><Link className="button outline" href="/dashboard">Back to dashboard</Link></section></DashboardPageFrame>
 

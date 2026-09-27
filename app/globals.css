@@ -122,3 +122,8 @@
 .dashboard-shell:has(.dashboard-sidebar):has(.preloader){display:grid;grid-template-columns:270px minmax(0,1fr);place-items:stretch;min-height:100dvh;padding:0;background:#fbfcff}.dashboard-shell:has(.dashboard-sidebar):has(.preloader) .dashboard-main:has(.preloader){display:grid;place-items:center;min-height:100dvh}.dashboard-shell:has(.dashboard-sidebar):has(.preloader) .preloader{min-height:180px;width:min(100%,420px);padding:35px;background:#fff;border:1px solid var(--line);border-radius:14px;box-shadow:0 20px 60px #16433312}
 @media(max-width:900px){.dashboard-shell:has(.dashboard-sidebar):has(.preloader){grid-template-columns:210px minmax(0,1fr)}}
 @media(max-width:650px){.dashboard-shell:has(.dashboard-sidebar):has(.preloader){display:block;min-height:100dvh;padding:0}.dashboard-shell:has(.dashboard-sidebar):has(.preloader) .dashboard-main:has(.preloader){display:grid;place-items:center;min-height:calc(100dvh - 100px);padding:18px 16px 45px}}
+
+/* Full-page loader: original three bouncing bars, no card or small container. */
+.preloader-screen{position:fixed;inset:0;z-index:10000;display:grid;place-items:center;width:100vw;min-height:100dvh;padding:24px;background:var(--cream)}
+.preloader-content{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;min-height:0;width:auto;padding:0;border:0;border-radius:0;background:transparent;box-shadow:none;color:var(--muted);font-size:13px;text-align:center}
+.preloader-mark i{background:var(--green);box-shadow:none}

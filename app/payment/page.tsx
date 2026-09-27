@@ -56,7 +56,7 @@ export default function PaymentPage() {
     setSaving(false)
   }
 
-  if (loading) return <main className="dashboard-page"><div className="dashboard-shell standalone-shell"><Preloader label="Loading payment page…" /></div></main>
+  if (loading) return <Preloader label="Loading payment page…" />
   if (workspace?.status === 'banned') return <main className="dashboard-page"><div className="dashboard-shell standalone-shell"><Link className="back-link" href="/dashboard"><ArrowLeft /> Back to dashboard</Link><section className="payment-card"><h1>Workspace suspended</h1><p>This workspace cannot submit payment requests while it is suspended.</p></section></div></main>
   if (!workspace) return <main className="dashboard-page"><div className="dashboard-shell standalone-shell"><Link className="back-link" href="/dashboard"><ArrowLeft /> Back to dashboard</Link><section className="payment-card"><h1>Create your business workspace first</h1><p>You need a business workspace before upgrading.</p><Link className="button green" href="/dashboard">Open dashboard</Link></section></div></main>
 

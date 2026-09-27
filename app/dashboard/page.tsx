@@ -144,7 +144,7 @@ export default function DashboardPage() {
   const monthFeedbackCount = useMemo(() => { const start = new Date(); start.setDate(1); start.setHours(0, 0, 0, 0); return feedback.filter(item => new Date(item.created_at) >= start).length }, [feedback])
   const filteredFeedback = useMemo(() => { const query = feedbackQuery.trim().toLowerCase(); return query ? feedback.filter(item => item.comment.toLowerCase().includes(query) || String(item.rating).includes(query)) : feedback }, [feedback, feedbackQuery])
 
-  if (loading && !workspace) return <DashboardPageFrame><Preloader label="Loading your workspace…" /></DashboardPageFrame>
+  if (loading && !workspace) return <Preloader label="Loading your workspace…" />
   if (workspace?.status === 'banned') return <DashboardPageFrame><section className="suspended-card"><h1>Workspace suspended</h1><p>This business workspace has been paused by the Feedback Deo admin team. Public feedback and plan changes are disabled.</p></section></DashboardPageFrame>
   return <DashboardPageFrame>
 

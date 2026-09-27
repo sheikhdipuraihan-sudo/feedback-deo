@@ -64,7 +64,7 @@ export default function PublicFeedbackPage({ params }: Props) {
   }
 
   if (!supabase) return <PageMessage title="Feedback Deo is not configured" body="The feedback form is temporarily unavailable." />
-  if (loading) return <main className="public-feedback-page"><section className="public-feedback-card message-card soft-shadow"><div className="feedback-brand">feedback <span>deo</span>.</div><Preloader label="Loading feedback form…" /></section></main>
+  if (loading) return <Preloader label="Loading feedback form…" />
   if (error && !workspace) return <PageMessage title="Feedback link unavailable" body={error} />
   if (submitted && workspace) return <PageMessage icon={<CheckCircle2 />} title="Thank you for your feedback" body={`Your response was sent anonymously to ${workspace.name}.`} />
 

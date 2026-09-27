@@ -170,7 +170,7 @@ export default function QrLinksPage() {
   const qrColor = workspace?.plan === 'pro' ? workspace.qr_brand_color || '#132b26' : '#132b26'
   const qrLayout = workspace?.plan === 'pro' ? workspace.qr_layout || 'stacked' : 'stacked'
 
-  if (loading) return <DashboardPageFrame mainClassName="ai-page-shell qr-page-shell"><Preloader label="Loading QR & links…" /></DashboardPageFrame>
+  if (loading) return <Preloader label="Loading QR & links…" />
   if (workspace?.status === 'banned') return <DashboardPageFrame mainClassName="ai-page-shell qr-page-shell"><section className="payment-card"><h1>Workspace suspended</h1><p className="payment-lead">QR and link management is unavailable while this workspace is suspended.</p><Link className="button outline" href="/dashboard">Back to dashboard</Link></section></DashboardPageFrame>
   if (!workspace) return <DashboardPageFrame mainClassName="ai-page-shell qr-page-shell"><section className="payment-card"><div className="payment-icon"><QrCode /></div><h1>Create your feedback space first</h1><p className="payment-lead">Your workspace’s QR code and public links will appear here.</p><Link className="button green" href="/dashboard">Open dashboard <ArrowRight /></Link></section></DashboardPageFrame>
 
