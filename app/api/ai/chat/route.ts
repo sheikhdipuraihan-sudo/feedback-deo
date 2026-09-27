@@ -2,9 +2,10 @@ import { NextResponse } from 'next/server'
 import { getFirebaseAdminAuth } from '@/lib/firebase/admin'
 import { createClient as createSupabaseClient } from '@supabase/supabase-js'
 import { getBusinessTypeLabel } from '@/lib/business-types'
+import { AIProviderRefusalError, AIProvidersUnavailableError, generateAIText, hasAIProvider } from '@/lib/ai/providers'
 
 export const runtime = 'nodejs'
-const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions'
+export const maxDuration = 30
 const MAX_FEEDBACK = 100
 const MAX_COMMENT_LENGTH = 2000
 
@@ -16,7 +17,7 @@ export async function POST(request: Request) {
   try {
     const authorization = request.headers.get('authorization')
     if (!authorization?.startsWith('Bearer ')) return NextResponse.json({ error: 'Sign in to use Feedback Deo AI.' }, { status: 401 })
-    if (!process.env.OPENROUTER_API_KEY) return NextResponse.json({ error: 'Feedback Deo AI is not configured yet.' }, { status: 503 })
+    if (!hasAIProvider()) return NextResponse.json({ error: 'Feedback Deo AI is not configured yet.' }, { status: 503 })
 
     const firebaseToken = authorization.slice(7)
     const decoded = await (await getFirebaseAdminAuth()).verifyIdToken(firebaseToken)
@@ -71,20 +72,17 @@ export async function POST(request: Request) {
     const messages = mode === 'chat'
       ? [{ role: 'system' as const, content: systemMessage }, ...chatTurns]
       : [{ role: 'system' as const, content: systemMessage }, { role: 'user' as const, content: userPrompt }]
-    const response = await fetch(OPENROUTER_URL, {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`, 'Content-Type': 'application/json', 'HTTP-Referer': 'https://feedback-deo.vercel.app', 'X-OpenRouter-Title': 'Feedback Deo AI' },
-      body: JSON.stringify({ model: 'openrouter/free', temperature: mode === 'reply' ? 0.5 : 0.2, max_tokens: maxTokens, messages }),
-      cache: 'no-store',
+    const { text: answer } = await generateAIText({
+      temperature: mode === 'reply' ? 0.5 : 0.2,
+      maxTokens,
+      messages,
     })
-    const result = await response.json().catch(() => null) as { choices?: Array<{ message?: { content?: string } }>; error?: { message?: string } } | null
-    if (!response.ok) { console.error('feedback_deo_ai_chat_provider_error', response.status, result?.error?.message || 'unknown'); return NextResponse.json({ error: 'Feedback Deo AI is temporarily busy. Please try again in a moment.' }, { status: 502 }) }
-    const answer = result?.choices?.[0]?.message?.content?.trim()
-    if (!answer) return NextResponse.json({ error: 'Feedback Deo AI returned an empty answer. Please try again.' }, { status: 502 })
     if (mode === 'reply') return NextResponse.json({ reply: answer.replace(/^\s*["“]|["”]\s*$/g, ''), feedbackId: body.feedback_id }, { headers: { 'Cache-Control': 'no-store' } })
     if (mode === 'plan') return NextResponse.json({ plan: answer, businessType }, { headers: { 'Cache-Control': 'no-store' } })
     return NextResponse.json({ reply: answer.replace(/^#{1,6}\s*/gm, '').replace(/\*\*/g, '') }, { headers: { 'Cache-Control': 'no-store' } })
   } catch (error) {
+    if (error instanceof AIProvidersUnavailableError) return NextResponse.json({ error: 'Feedback Deo AI is temporarily busy. Please try again in a moment.' }, { status: 503 })
+    if (error instanceof AIProviderRefusalError) return NextResponse.json({ error: 'Feedback Deo AI could not safely process this request.' }, { status: 422 })
     console.error('feedback_deo_ai_chat_failed', error instanceof Error ? error.message : 'unknown')
     return NextResponse.json({ error: 'Feedback Deo AI could not complete that request.' }, { status: 500 })
   }
