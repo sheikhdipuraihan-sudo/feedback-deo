@@ -117,3 +117,8 @@
 
 /* Pro status is a compact workspace badge; the Free plan banner remains actionable. */
 .title-settings .pro-badge{display:inline-flex;align-items:center;justify-content:center;padding:7px 11px;border:1px solid #ded4ff;border-radius:999px;background:#f0ecff;color:#5835c9;font-size:11px;font-weight:800;letter-spacing:.08em;line-height:1;white-space:nowrap}
+
+/* Keep the original three-bar preloader visible beside the shared sidebar. */
+.dashboard-shell:has(.dashboard-sidebar):has(.preloader){display:grid;grid-template-columns:270px minmax(0,1fr);place-items:stretch;min-height:100dvh;padding:0;background:#fbfcff}.dashboard-shell:has(.dashboard-sidebar):has(.preloader) .dashboard-main:has(.preloader){display:grid;place-items:center;min-height:100dvh}.dashboard-shell:has(.dashboard-sidebar):has(.preloader) .preloader{min-height:180px;width:min(100%,420px);padding:35px;background:#fff;border:1px solid var(--line);border-radius:14px;box-shadow:0 20px 60px #16433312}
+@media(max-width:900px){.dashboard-shell:has(.dashboard-sidebar):has(.preloader){grid-template-columns:210px minmax(0,1fr)}}
+@media(max-width:650px){.dashboard-shell:has(.dashboard-sidebar):has(.preloader){display:block;min-height:100dvh;padding:0}.dashboard-shell:has(.dashboard-sidebar):has(.preloader) .dashboard-main:has(.preloader){display:grid;place-items:center;min-height:calc(100dvh - 100px);padding:18px 16px 45px}}
