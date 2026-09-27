@@ -47,8 +47,10 @@ export default function PaymentPage() {
     const user = await waitForFirebaseUser()
     if (!user) { router.replace('/?auth=login'); return }
     const { error: insertError } = await supabase.from('subscription_payments').insert({ workspace_id: workspace.id, submitted_by: user.uid, amount: 49, bkash_number: '01939357037', transaction_id: transactionId.trim(), requested_plan: 'pro' })
-    if (insertError) setError(insertError.code === '23505' ? 'That transaction ID has already been submitted.' : 'Could not submit the payment. Please check the transaction ID and try again.')
-    else {
+    if (insertError) {
+      console.error('Payment submission failed', { code: insertError.code })
+      setError(insertError.code === '23505' ? 'That transaction ID has already been submitted.' : 'Could not save your payment request. If you already sent ৳49, do not send it again. Retry with the same transaction ID or contact support.')
+    } else {
       setMessage('Payment submitted for admin review. Your plan will change after the payment is checked.')
       void notifyTelegram({ workspace_slug: workspace.slug, event: 'payment_submitted', transaction_id: transactionId.trim(), status: 'pending' })
       setTransactionId(''); await load()
