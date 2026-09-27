@@ -43,3 +43,9 @@
 .button.green{background:var(--green)}.button.green:hover{background:#167d54}.button.outline{border-color:var(--line);color:var(--ink);background:#fff}.button.outline:hover{border-color:var(--line);color:var(--green);background:#fff}
 .telegram-panel{background:#fff;border-color:var(--line)}.telegram-panel-icon{background:var(--mint);color:var(--green)}.share-panel,.tables-panel,.feedback-panel{background:#fff;border-color:var(--line);box-shadow:0 12px 30px #16433308}.share-row input,.table-row input,.inline-form input{background:var(--cream);border-color:var(--line)}.qr-card strong{color:var(--muted)}.feedback-row{border-color:var(--line)}.feedback-row p{color:var(--ink)}.feedback-row time{color:var(--muted)}.empty-feedback{color:var(--muted)}.setup-card{border-color:var(--line);box-shadow:0 12px 30px #16433308}.setup-icon{background:var(--mint);color:var(--green)}
 @media(max-width:650px){.dashboard-page{padding:0;background:var(--cream)}.dashboard-main{background:var(--cream)}.stats-grid,.stat-card,.share-panel,.tables-panel,.feedback-panel{background:#fff}}
+
+/* Fullscreen dashboard and Feedback Deo sidebar identity */
+.dashboard-page{padding:0;min-height:100dvh}
+.dashboard-shell{width:100%;min-height:100dvh;border-radius:0;box-shadow:none}
+.dashboard-mark b{color:var(--green);font-weight:700}.dashboard-mark small{font-size:inherit;color:var(--green);margin-left:0}
+@media(max-width:900px){.dashboard-page{padding:0}.dashboard-shell{border-radius:0}}
