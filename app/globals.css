@@ -57,3 +57,10 @@
 .dashboard-shell:has(.payment-card) .back-link{margin-bottom:18px}
 .preloader{min-height:180px;width:min(100%,420px);padding:35px;background:#fff;border:1px solid var(--line);border-radius:14px;box-shadow:0 20px 60px #16433312}
 .preloader-mark i{background:var(--green);box-shadow:0 2px 8px #1c9c6a33}
+
+/* Site-wide route isolation and loading correction */
+.dashboard-shell.standalone-shell{display:block;width:100%;min-height:100dvh;padding:clamp(24px,5vw,72px);background:var(--cream)}
+.dashboard-shell.standalone-shell:has(.preloader){display:grid;place-items:center;padding:24px}
+.dashboard-shell.standalone-shell .preloader{min-height:auto;width:auto;padding:0;border:0;border-radius:0;background:transparent;box-shadow:none}
+.dashboard-shell.standalone-shell .preloader-mark{margin-bottom:2px}
+.dashboard-shell:has(.preloader) .preloader{min-height:auto;width:auto;padding:0;border:0;border-radius:0;background:transparent;box-shadow:none}
