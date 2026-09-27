@@ -64,3 +64,7 @@
 .dashboard-shell.standalone-shell .preloader{min-height:auto;width:auto;padding:0;border:0;border-radius:0;background:transparent;box-shadow:none}
 .dashboard-shell.standalone-shell .preloader-mark{margin-bottom:2px}
 .dashboard-shell:has(.preloader) .preloader{min-height:auto;width:auto;padding:0;border:0;border-radius:0;background:transparent;box-shadow:none}
+
+/* Final loading alignment: remove the inherited sidebar grid columns */
+.dashboard-shell.standalone-shell:has(.preloader){grid-template-columns:1fr;width:100%;min-height:100dvh}
+.dashboard-shell:has(.preloader){grid-template-columns:1fr}
