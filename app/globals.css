@@ -127,3 +127,9 @@
 .preloader-screen{position:fixed;inset:0;z-index:10000;display:grid;place-items:center;width:100vw;min-height:100dvh;padding:24px;background:var(--cream)}
 .preloader-content{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;min-height:0;width:auto;padding:0;border:0;border-radius:0;background:transparent;box-shadow:none;color:var(--muted);font-size:13px;text-align:center}
 .preloader-mark i{background:var(--green);box-shadow:none}
+
+/* Keep the shared sidebar pinned to the viewport while dashboard content scrolls. */
+.dashboard-page{overflow-x:clip;overflow-y:visible}
+.dashboard-shell{overflow:visible}
+.dashboard-shell>.dashboard-sidebar{position:sticky;top:0;align-self:start;height:100dvh;max-height:100dvh;overflow-y:auto;overscroll-behavior:contain;z-index:30}
+@media(max-width:650px){.dashboard-shell>.dashboard-sidebar{height:auto;max-height:none;align-self:start;overflow:visible}}
