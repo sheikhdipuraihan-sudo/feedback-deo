@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { BrainCircuit, CreditCard, LayoutDashboard, LogOut, Menu, MessageCircle, QrCode, Store, X } from 'lucide-react'
+import { BrainCircuit, Code2, CreditCard, LayoutDashboard, LogOut, Menu, MessageCircle, QrCode, Store, X } from 'lucide-react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { signOut as firebaseSignOut } from 'firebase/auth'
@@ -65,6 +65,7 @@ export default function DashboardSidebar() {
         <Link className={pathname === '/qr' ? 'active' : ''} href="/qr" onClick={closeMenu}><QrCode /> QR &amp; Links</Link>
         <Link href="/dashboard#telegram" onClick={closeMenu}><MessageCircle /> Telegram alerts</Link>
         <Link className={pathname === '/ai' ? 'active' : ''} href="/ai" onClick={closeMenu}><BrainCircuit /> Feedback Deo AI</Link>
+        <Link className={pathname === '/widget' ? 'active' : ''} href="/widget" onClick={closeMenu}><Code2 /> Website widget <span className="nav-pro-label">PRO</span></Link>
         <Link className={pathname === '/payment' ? 'active' : ''} href="/payment" onClick={closeMenu}><CreditCard /> Billing <span className="nav-chevron">›</span></Link>
         <button type="button" className="sidebar-nav-logout" onClick={signOut}><LogOut /> Log out</button>
       </nav>
