@@ -196,3 +196,24 @@ test('fails without making a request if no provider key is configured', async ()
   await assert.rejects(generateAIText({ messages: [{ role: 'user', content: 'A request.' }], temperature: 0.2, maxTokens: 100 }), AIProvidersUnavailableError)
   assert.equal(called, false)
 })
+
+
+test('falls through empty OpenRouter and Gemini 503 to Groq’s current supported model', async () => {
+  configureProviders()
+  const calls = []
+  let groqRequest
+  globalThis.fetch = async (input, init) => {
+    const host = getHost(input)
+    calls.push(host)
+    if (host === 'openrouter.ai') return jsonResponse(200, { model: 'free-model', choices: [{ finish_reason: 'stop', message: { content: '' } }] })
+    if (host === 'generativelanguage.googleapis.com') return jsonResponse(503, { error: { code: 'unavailable' } })
+    groqRequest = completionRequest(init)
+    return jsonResponse(200, { model: 'openai/gpt-oss-120b', choices: [{ message: { content: 'The analysis is ready.' } }] })
+  }
+
+  const result = await generateAIText({ messages: [{ role: 'user', content: 'Analyze these feedback records.' }], temperature: 0.2, maxTokens: 700 })
+  assert.equal(result.text, 'The analysis is ready.')
+  assert.equal(result.provider, 'Groq')
+  assert.equal(groqRequest.model, 'openai/gpt-oss-120b')
+  assert.deepEqual(calls, ['openrouter.ai', 'generativelanguage.googleapis.com', 'api.groq.com'])
+})

@@ -21,6 +21,7 @@ type CompletionOptions = {
 }
 
 type ChatCompletionPayload = {
+  model?: string
   choices?: Array<{
     finish_reason?: string | null
     message?: {
@@ -103,7 +104,7 @@ function getProviders(): AIProvider[] {
       name: 'Groq',
       url: 'https://api.groq.com/openai/v1/chat/completions',
       apiKey: groqKey,
-      model: process.env.GROQ_MODEL || 'llama-3.3-70b-versatile',
+      model: process.env.GROQ_MODEL || 'openai/gpt-oss-120b',
       tokenLimitField: 'max_completion_tokens',
     })
   }
@@ -238,14 +239,23 @@ export async function generateAIText(options: CompletionOptions): Promise<{ text
 
       const payload = await response.json().catch(() => null) as ChatCompletionPayload | null
       if (!response.ok) {
-        console.warn('feedback_deo_ai_provider_failed', { provider: provider.name, status: response.status })
+        console.warn('feedback_deo_ai_provider_failed', { provider: provider.name, model: provider.model, status: response.status })
         continue
       }
 
       const result = extractText(payload)
       if (result.refused) throw new AIProviderRefusalError()
       if (!result.text) {
-        console.warn('feedback_deo_ai_provider_empty', { provider: provider.name })
+        const choice = payload?.choices?.[0]
+        const content = choice?.message?.content
+        console.warn('feedback_deo_ai_provider_empty', {
+          provider: provider.name,
+          requestedModel: provider.model,
+          resolvedModel: payload?.model || 'unknown',
+          finishReason: choice?.finish_reason || 'unknown',
+          contentType: content === null ? 'null' : Array.isArray(content) ? 'array' : typeof content,
+          contentLength: typeof content === 'string' ? content.length : Array.isArray(content) ? content.length : 0,
+        })
         continue
       }
 
@@ -257,6 +267,7 @@ export async function generateAIText(options: CompletionOptions): Promise<{ text
       if (error instanceof AIProviderRefusalError) throw error
       console.warn('feedback_deo_ai_provider_unavailable', {
         provider: provider.name,
+        model: provider.model,
         reason: error instanceof Error && error.name === 'TimeoutError' ? 'timeout' : 'network_or_invalid_response',
       })
     }
