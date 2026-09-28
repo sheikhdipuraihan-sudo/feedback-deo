@@ -9,6 +9,7 @@ import { firebaseAuth, waitForFirebaseUser } from '@/lib/firebase/client'
 import { ACCOUNT_DELETION_PHRASE } from '@/lib/account-deletion'
 
 export default function AccountPage() {
+  const router = useRouter()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [phrase, setPhrase] = useState('')
