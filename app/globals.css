@@ -142,6 +142,8 @@
 .dashboard-sidebar-scrim{display:none}
 @media(max-width:650px){
   .dashboard-shell{width:min(100% - 32px,600px);padding:0 16px 52px}
+  .dashboard-shell{background:transparent;border-radius:0;box-shadow:none;overflow:visible}
+  .dashboard-main{background:transparent;padding:0 0 52px}
   .dashboard-mobile-header{display:flex;position:sticky;top:0;z-index:40;align-items:center;justify-content:space-between;width:calc(100% + 32px);min-height:64px;margin:0 -16px 20px;padding:0 16px;border-bottom:1px solid var(--line);background:var(--cream)}
   .dashboard-mobile-mark{display:inline-flex;align-items:baseline;text-decoration:none;color:var(--ink);font:700 21px/1 'Space Grotesk',sans-serif;letter-spacing:-.6px}
   .dashboard-mobile-mark b{color:var(--green)}
@@ -149,7 +151,7 @@
   .dashboard-menu-toggle{display:grid;place-items:center;width:42px;height:42px;border:1px solid var(--line);border-radius:9px;background:#fff;color:var(--ink);cursor:pointer}
   .dashboard-menu-toggle svg{width:21px;height:21px}
   .dashboard-sidebar-scrim{display:block;position:fixed;inset:0;z-index:998;border:0;background:#132b2670;cursor:pointer}
-  .dashboard-shell>.dashboard-sidebar{position:fixed;left:0;top:0;bottom:0;z-index:999;width:min(84vw,320px);height:100dvh;max-height:100dvh;align-self:auto;overflow-x:hidden;overflow-y:auto;overscroll-behavior:contain;padding:22px 18px;background:#fff;box-shadow:14px 0 34px #132b2630;transform:translateX(-105%);visibility:hidden;transition:transform 220ms cubic-bezier(.23,1,.32,1),visibility 0s linear 220ms}
+  .dashboard-shell>.dashboard-sidebar{position:fixed;right:0;left:auto;top:0;bottom:0;z-index:999;width:min(84vw,320px);height:100dvh;max-height:100dvh;align-self:auto;overflow-x:hidden;overflow-y:auto;overscroll-behavior:contain;padding:22px 18px;background:#fff;box-shadow:-14px 0 34px #132b2630;transform:translateX(105%);visibility:hidden;transition:transform 220ms cubic-bezier(.23,1,.32,1),visibility 0s linear 220ms}
   .dashboard-shell>.dashboard-sidebar.mobile-open{transform:translateX(0);visibility:visible;transition:transform 220ms cubic-bezier(.23,1,.32,1),visibility 0s}
   .dashboard-sidebar-header{min-height:42px;margin-bottom:20px}
   .dashboard-sidebar .dashboard-mark{padding-bottom:0;font-size:21px}
