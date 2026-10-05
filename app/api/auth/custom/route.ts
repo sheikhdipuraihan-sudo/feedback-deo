@@ -67,7 +67,7 @@ export async function POST(request: Request) {
   if (action === 'login') {
     if (!email || !password) return bad('Enter your email and password.')
     const user = await getUserByEmail(email)
-    if (!user?.password_hash) return bad('LEGACY_FIREBASE_ACCOUNT', 409)
+    if (!user?.password_hash) return bad('Invalid email or password.', 401)
     if (!(await verifyPassword(password, user.password_hash))) return bad('Invalid email or password.', 401)
     const publicRecord = publicUser(user)
     await createSession(publicRecord)
