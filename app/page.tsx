@@ -84,9 +84,10 @@ function AccessForm({mode,onSubmit,onForgotPassword,onSwitchMode}:{mode:"signup"
     <label>Password<input name="password" type="password" placeholder="At least 8 characters" minLength={8} required /></label>
     {mode === "signup" && <label>Business name<input name="business" placeholder="The Commons Café" required /></label>}
     {error&&<small className="form-error" role="alert">{error}</small>}
-    <button className="button green full" type="submit" disabled={busy}>{busy ? "Working…" : mode === "login" ? "Log in" : "Create free space"} <ArrowRight size={15}/></button>
-    <div className="auth-divider"><span>or</span></div>
-    <a className="button full google-auth" href="/api/auth/google"><GoogleIcon />Continue with Google</a>
+    <div className="auth-button-stack">
+      <button className="button green full" type="submit" disabled={busy}>{busy ? "Working…" : mode === "login" ? "Log in" : "Create free space"} <ArrowRight size={15}/></button>
+      <a className="button full google-auth" href="/api/auth/google"><GoogleIcon />Continue with Google</a>
+    </div>
     {mode === "login"&&<button type="button" className="auth-switch" onClick={onForgotPassword}>Forgot your password?</button>}
     {mode === "signup"&&<label className="checkbox-row signup-consent"><input name="legalConsent" type="checkbox" required /><span>I agree to the <a href="/terms" target="_blank" rel="noreferrer">Terms of Service</a> and acknowledge the <a href="/privacy" target="_blank" rel="noreferrer">Privacy Policy</a>.</span></label>}
     <button type="button" className="auth-switch" onClick={onSwitchMode}>{mode === "login" ? "Need an account? Create one" : "Already have an account? Log in"}</button>
