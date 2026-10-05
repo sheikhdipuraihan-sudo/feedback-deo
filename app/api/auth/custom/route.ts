@@ -67,7 +67,16 @@ export async function POST(request: Request) {
   if (action === 'login') {
     if (!email || !password) return bad('Enter your email and password.')
     const user = await getUserByEmail(email)
-    if (!user?.password_hash) return bad('Invalid email or password.', 401)
+    if (!user?.password_hash) {
+      try {
+        await (await getFirebaseAdminAuth()).getUserByEmail(email)
+        return bad('LEGACY_FIREBASE_ACCOUNT', 409)
+      } catch (error) {
+        if ((error as { code?: string })?.code === 'auth/user-not-found') return bad('Invalid email or password.', 401)
+        console.error('legacy_account_lookup_failed', error instanceof Error ? error.message : 'unknown error')
+        return bad('This older account needs password reset before it can be migrated.', 409)
+      }
+    }
     if (!(await verifyPassword(password, user.password_hash))) return bad('Invalid email or password.', 401)
     const publicRecord = publicUser(user)
     await createSession(publicRecord)
