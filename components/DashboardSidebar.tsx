@@ -4,8 +4,7 @@ import { useEffect, useState } from 'react'
 import { BrainCircuit, Code2, CreditCard, LayoutDashboard, LogOut, Menu, MessageCircle, QrCode, Settings, Store, X } from 'lucide-react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { signOut as firebaseSignOut } from 'firebase/auth'
-import { firebaseAuth } from '@/lib/firebase/client'
+import { signOutCurrentUser } from '@/lib/firebase/client'
 
 export default function DashboardSidebar() {
   const pathname = usePathname()
@@ -31,7 +30,7 @@ export default function DashboardSidebar() {
   }
 
   async function signOut() {
-    await firebaseSignOut(firebaseAuth)
+    await signOutCurrentUser()
     router.replace('/')
   }
 

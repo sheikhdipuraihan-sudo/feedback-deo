@@ -20,9 +20,8 @@ import {
 } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { signOut as firebaseSignOut } from 'firebase/auth'
 import { createClient } from '@/lib/supabase/client'
-import { firebaseAuth } from '@/lib/firebase/client'
+import { signOutCurrentUser } from '@/lib/firebase/client'
 import Preloader from '@/components/Preloader'
 import { notifyTelegram } from '@/lib/telegram'
 import {
@@ -231,7 +230,7 @@ export default function AdminSubscriptionsPage() {
   }
 
   async function signOut() {
-    await firebaseSignOut(firebaseAuth)
+    await signOutCurrentUser()
     router.replace('/')
   }
 

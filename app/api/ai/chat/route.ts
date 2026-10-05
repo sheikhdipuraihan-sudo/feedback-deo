@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient as createSupabaseClient } from '@supabase/supabase-js'
-import { getFirebaseAdminAuth } from '@/lib/firebase/admin'
+import { getCurrentUserFromRequest } from '@/lib/auth/server'
 import { getBusinessTypeLabel } from '@/lib/business-types'
 import {
   buildChatSystemPrompt,
@@ -103,7 +103,8 @@ export async function POST(request: Request) {
     if (!authorization?.startsWith('Bearer ')) return NextResponse.json({ error: 'Sign in to use Feedback Deo AI.' }, { status: 401 })
 
     const firebaseToken = authorization.slice(7)
-    const decoded = await (await getFirebaseAdminAuth()).verifyIdToken(firebaseToken)
+    const decoded = await getCurrentUserFromRequest(request)
+    if (!decoded) return NextResponse.json({ error: 'Your session expired. Please sign in again.' }, { status: 401 })
     const body = await request.json().catch(() => ({})) as { workspace_id?: string; message?: string; history?: ChatTurn[] }
     const workspaceId = typeof body.workspace_id === 'string' ? body.workspace_id : ''
     const message = String(body.message || '').trim().slice(0, 500)

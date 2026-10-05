@@ -1,8 +1,22 @@
 import { NextResponse } from 'next/server'
 import { getFirebaseAdminAuth } from '@/lib/firebase/admin'
 import { ACCOUNT_CONFIRMATION_BASE_URL, sendAccountConfirmationEmail } from '@/lib/account-confirmation'
+import { getAuthAdminClient } from '@/lib/auth/server'
+import { createHash } from 'node:crypto'
 
 export const runtime = 'nodejs'
+
+export async function GET(request: Request) {
+  const token = new URL(request.url).searchParams.get('token') || ''
+  if (!token) return NextResponse.redirect(new URL('/?confirmation=invalid', request.url))
+  const tokenHash = createHash('sha256').update(token).digest('hex')
+  const admin = getAuthAdminClient()
+  const result = await admin.from('auth_verification_tokens').select('token_hash,user_id').eq('token_hash', tokenHash).eq('purpose', 'email_verification').is('used_at', null).gt('expires_at', new Date().toISOString()).maybeSingle()
+  if (result.error || !result.data) return NextResponse.redirect(new URL('/?confirmation=invalid', request.url))
+  await admin.from('auth_verification_tokens').update({ used_at: new Date().toISOString() }).eq('token_hash', tokenHash)
+  await admin.from('auth_users').update({ email_verified: true, updated_at: new Date().toISOString() }).eq('id', result.data.user_id)
+  return NextResponse.redirect(new URL('/?confirmation=success', request.url))
+}
 
 export async function POST(request: Request) {
   try {

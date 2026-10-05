@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { getFirebaseAdminAuth } from '@/lib/firebase/admin'
+import { getUserByEmail, updateUserPassword } from '@/lib/auth/server'
 import { getPasswordResetAdminClient, hashResetToken, normalizeResetEmail } from '@/lib/password-reset'
 
 export const runtime = 'nodejs'
@@ -41,10 +42,14 @@ export async function POST(request: Request) {
     if (consumed.error) throw consumed.error
     if (!consumed.data) return NextResponse.json({ error: INVALID_LINK_MESSAGE }, { status: 400 })
 
-    const adminAuth = await getFirebaseAdminAuth()
     const email = normalizeResetEmail(consumed.data.email)
-    const firebaseUser = await adminAuth.getUserByEmail(email)
-    await adminAuth.updateUser(firebaseUser.uid, { password })
+    const customUser = await getUserByEmail(email)
+    if (customUser) await updateUserPassword(customUser.id, password)
+    else {
+      const adminAuth = await getFirebaseAdminAuth()
+      const firebaseUser = await adminAuth.getUserByEmail(email)
+      await adminAuth.updateUser(firebaseUser.uid, { password })
+    }
     return NextResponse.json({ message: 'Your password was updated. You can now log in.' })
   } catch (error) {
     if ((error as { code?: string })?.code === 'auth/user-not-found') {

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { getFirebaseAdminAuth } from '@/lib/firebase/admin'
+import { getUserByEmail } from '@/lib/auth/server'
 import { createResetLink, createResetToken, getPasswordResetAdminClient, hashResetToken, normalizeResetEmail, RESET_LINK_TTL_MINUTES, sendResetLink } from '@/lib/password-reset'
 
 export const runtime = 'nodejs'
@@ -12,13 +13,16 @@ export async function POST(request: Request) {
     const email = normalizeResetEmail(String(body.email || ''))
     if (!email || !email.includes('@') || email.length > 254) return NextResponse.json({ error: 'Enter a valid email address.' }, { status: 400 })
 
-    const adminAuth = await getFirebaseAdminAuth()
-    let firebaseUser
-    try {
-      firebaseUser = await adminAuth.getUserByEmail(email)
-    } catch (error) {
-      if ((error as { code?: string })?.code === 'auth/user-not-found') return NextResponse.json({ message: genericMessage })
-      throw error
+    const customUser = await getUserByEmail(email)
+    let firebaseUser: { uid: string } | null = null
+    if (!customUser) {
+      const adminAuth = await getFirebaseAdminAuth()
+      try {
+        firebaseUser = await adminAuth.getUserByEmail(email)
+      } catch (error) {
+        if ((error as { code?: string })?.code === 'auth/user-not-found') return NextResponse.json({ message: genericMessage })
+        throw error
+      }
     }
 
     const supabase = getPasswordResetAdminClient()
@@ -57,7 +61,7 @@ export async function POST(request: Request) {
       throw sendError
     }
 
-    console.info('feedback_deo_password_reset_link_requested', firebaseUser.uid)
+    console.info('feedback_deo_password_reset_link_requested', customUser?.id || firebaseUser?.uid)
     return NextResponse.json({ message: genericMessage })
   } catch (error) {
     console.error('feedback_deo_password_reset_link_request_failed', error instanceof Error ? error.message : 'unknown')

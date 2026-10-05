@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { getFirebaseAdminAuth } from '@/lib/firebase/admin'
+import { getCurrentUserFromRequest } from '@/lib/auth/server'
 import { createClient as createSupabaseClient } from '@supabase/supabase-js'
 import { getBusinessTypeLabel } from '@/lib/business-types'
 import { AIProviderRefusalError, AIProvidersUnavailableError, generateAIText, hasAIProvider } from '@/lib/ai/providers'
@@ -18,7 +18,8 @@ export async function POST(request: Request) {
     if (!hasAIProvider()) return NextResponse.json({ error: 'Feedback Deo AI is not configured yet.' }, { status: 503 })
 
     const firebaseToken = authorization.slice(7)
-    const decoded = await (await getFirebaseAdminAuth()).verifyIdToken(firebaseToken)
+    const decoded = await getCurrentUserFromRequest(request)
+    if (!decoded) return NextResponse.json({ error: 'Your session expired. Please sign in again.' }, { status: 401 })
     const body = await request.json().catch(() => ({})) as { workspace_id?: string }
     if (!body.workspace_id) return NextResponse.json({ error: 'A workspace is required.' }, { status: 400 })
 
