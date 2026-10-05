@@ -26,9 +26,20 @@ export async function POST(request: Request) {
           continue
         }
         const email = firebaseUser.email.trim().toLowerCase()
-        const existing = await supabase.from('auth_users').select('id,google_sub').eq('email', email).maybeSingle()
+        const existing = await supabase.from('auth_users').select('id,google_sub,firebase_uid').eq('email', email).maybeSingle()
         if (existing.error) throw existing.error
         if (existing.data) {
+          // Never merge an unverified Firebase address into a different existing login.
+          if (existing.data.id !== firebaseUser.uid && existing.data.firebase_uid !== firebaseUser.uid && !firebaseUser.emailVerified) {
+            skipped += 1
+            continue
+          }
+          // Existing Google/custom-auth accounts may have a UUID instead of the legacy UID.
+          // Reassign legacy workspaces to that canonical account ID so its owner can still see them.
+          if (existing.data.id !== firebaseUser.uid) {
+            const { error: ownershipError } = await supabase.from('workspaces').update({ owner_id: existing.data.id }).eq('owner_id', firebaseUser.uid)
+            if (ownershipError) throw ownershipError
+          }
           const { error } = await supabase.from('auth_users').update({ firebase_uid: firebaseUser.uid, email_verified: firebaseUser.emailVerified, updated_at: new Date().toISOString(), business_name: existing.data.google_sub ? undefined : (firebaseUser.displayName || undefined) }).eq('id', existing.data.id)
           if (error) throw error
           linked += 1
