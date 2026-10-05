@@ -13,6 +13,7 @@ type AuthUserRow = {
   email: string
   password_hash: string | null
   firebase_uid: string | null
+  google_sub: string | null
   role: 'authenticated' | 'admin'
   email_verified: boolean
   business_name: string | null
@@ -96,29 +97,36 @@ export async function verifyPassword(password: string, hash: string) {
 }
 
 async function getUserById(id: string) {
-  const { data, error } = await getAuthAdminClient().from('auth_users').select('id,email,password_hash,firebase_uid,role,email_verified,business_name').eq('id', id).maybeSingle()
+  const { data, error } = await getAuthAdminClient().from('auth_users').select('id,email,password_hash,firebase_uid,google_sub,role,email_verified,business_name').eq('id', id).maybeSingle()
   if (error) throw error
   return data as AuthUserRow | null
 }
 
 export async function getUserByEmail(email: string) {
-  const { data, error } = await getAuthAdminClient().from('auth_users').select('id,email,password_hash,firebase_uid,role,email_verified,business_name').eq('email', normalizeEmail(email)).maybeSingle()
+  const { data, error } = await getAuthAdminClient().from('auth_users').select('id,email,password_hash,firebase_uid,google_sub,role,email_verified,business_name').eq('email', normalizeEmail(email)).maybeSingle()
   if (error) throw error
   return data as AuthUserRow | null
 }
 
-export async function createUser(input: { email: string; password: string; businessName?: string; id?: string; firebaseUid?: string }) {
+export async function getUserByGoogleSub(googleSub: string) {
+  const { data, error } = await getAuthAdminClient().from('auth_users').select('id,email,password_hash,firebase_uid,google_sub,role,email_verified,business_name').eq('google_sub', googleSub).maybeSingle()
+  if (error) throw error
+  return data as AuthUserRow | null
+}
+
+export async function createUser(input: { email: string; password: string; businessName?: string; id?: string; firebaseUid?: string; googleSub?: string; emailVerified?: boolean }) {
   const email = normalizeEmail(input.email)
   const row = {
     id: input.id || randomUUID(),
     email,
     password_hash: await hashPassword(input.password),
     firebase_uid: input.firebaseUid || null,
+    google_sub: input.googleSub || null,
     role: 'authenticated' as const,
-    email_verified: false,
+    email_verified: input.emailVerified === true,
     business_name: input.businessName?.trim().slice(0, 120) || null,
   }
-  const { data, error } = await getAuthAdminClient().from('auth_users').insert(row).select('id,email,password_hash,firebase_uid,role,email_verified,business_name').single()
+  const { data, error } = await getAuthAdminClient().from('auth_users').insert(row).select('id,email,password_hash,firebase_uid,google_sub,role,email_verified,business_name').single()
   if (error) throw error
   return data as AuthUserRow
 }

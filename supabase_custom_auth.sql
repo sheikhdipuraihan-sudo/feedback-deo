@@ -6,6 +6,7 @@ create table if not exists public.auth_users (
   email text not null,
   password_hash text,
   firebase_uid text unique,
+  google_sub text unique,
   role text not null default 'authenticated' check (role in ('authenticated', 'admin')),
   email_verified boolean not null default false,
   business_name text,
@@ -15,6 +16,7 @@ create table if not exists public.auth_users (
 
 create unique index if not exists auth_users_email_lower_idx on public.auth_users (lower(email));
 create index if not exists auth_users_firebase_uid_idx on public.auth_users (firebase_uid);
+create index if not exists auth_users_google_sub_idx on public.auth_users (google_sub);
 
 create table if not exists public.auth_sessions (
   token_hash text primary key,
