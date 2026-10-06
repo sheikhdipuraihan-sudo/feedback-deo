@@ -8,8 +8,9 @@ import { createClient } from '@/lib/supabase/client'
 import { waitForFirebaseUser } from '@/lib/firebase/client'
 import Preloader from '@/components/Preloader'
 import DashboardPageFrame from '@/components/DashboardPageFrame'
+import { hasProAccess } from '@/lib/pro-access'
 
-type Workspace = { id: string; name: string; slug: string; plan: 'free' | 'pro'; status: 'active' | 'banned' }
+type Workspace = { id: string; name: string; slug: string; plan: 'free' | 'pro'; referral_pro_until?: string | null; status: 'active' | 'banned' }
 type Theme = 'white' | 'dark'
 
 const sampleReviews = [
@@ -36,7 +37,7 @@ export default function WebsiteWidgetPage() {
     if (!user) { router.replace('/?auth=login'); return }
     const { data, error: queryError } = await supabase
       .from('workspaces')
-      .select('id,name,slug,plan,status')
+      .select('id,name,slug,plan,referral_pro_until,status')
       .eq('owner_id', user.uid)
       .order('created_at', { ascending: true })
       .limit(1)
@@ -49,7 +50,7 @@ export default function WebsiteWidgetPage() {
   useEffect(() => { void Promise.resolve().then(() => loadWorkspace()) }, [loadWorkspace])
 
   async function generateCode() {
-    if (!workspace || workspace.plan !== 'pro') return
+    if (!workspace || !hasProAccess(workspace)) return
     setGenerating(true); setError(''); setMessage('')
     try {
       const user = await waitForFirebaseUser()
@@ -84,7 +85,7 @@ export default function WebsiteWidgetPage() {
   if (loading) return <Preloader label="Loading website widget…" />
   if (!workspace) return <DashboardPageFrame mainClassName="ai-page-shell website-widget-shell"><section className="widget-upgrade-card"><div className="widget-lock-icon"><Code2 /></div><p className="kicker">WEBSITE WIDGET</p><h1>Create your feedback space first</h1><p>Your website review widget will be available after you create a business workspace.</p><Link className="button green" href="/dashboard">Open dashboard <ArrowRight /></Link></section></DashboardPageFrame>
   if (workspace.status === 'banned') return <DashboardPageFrame mainClassName="ai-page-shell website-widget-shell"><section className="widget-upgrade-card"><div className="widget-lock-icon"><LockKeyhole /></div><p className="kicker">WORKSPACE SUSPENDED</p><h1>Website widget unavailable</h1><p>This workspace is suspended, so its website review widget cannot be used.</p></section></DashboardPageFrame>
-  if (workspace.plan !== 'pro') return <DashboardPageFrame mainClassName="ai-page-shell website-widget-shell"><section className="widget-upgrade-card"><div className="widget-lock-icon"><LockKeyhole /></div><p className="kicker">PRO FEATURE</p><h1>Show your feedback on your website.</h1><p>Embed a clean, responsive customer review widget on your own website. Choose a light or dark theme and display recent ratings and comments—without platform branding.</p><ul><li><Check /> Two themes: White and Dark</li><li><Check /> Copy-and-paste iframe code</li><li><Check /> Reviews stay in sync with new feedback</li></ul><Link className="button green" href="/payment">Upgrade to Pro <ArrowRight /></Link></section></DashboardPageFrame>
+  if (!hasProAccess(workspace)) return <DashboardPageFrame mainClassName="ai-page-shell website-widget-shell"><section className="widget-upgrade-card"><div className="widget-lock-icon"><LockKeyhole /></div><p className="kicker">PRO FEATURE</p><h1>Show your feedback on your website.</h1><p>Embed a clean, responsive customer review widget on your own website. Choose a light or dark theme and display recent ratings and comments—without platform branding.</p><ul><li><Check /> Two themes: White and Dark</li><li><Check /> Copy-and-paste iframe code</li><li><Check /> Reviews stay in sync with new feedback</li></ul><Link className="button green" href="/payment">Upgrade to Pro <ArrowRight /></Link></section></DashboardPageFrame>
 
   return <DashboardPageFrame mainClassName="ai-page-shell website-widget-shell">
     <section className="ai-page-intro widget-page-intro"><div><p className="kicker">PRO · WEBSITE WIDGET</p><h1>Bring customer feedback to your website.</h1><p>Copy one iframe into your website editor. It shows recent ratings and comments, updates with new feedback, and carries no Feedback Deo branding.</p></div><div className="ai-intro-icon"><Code2 /></div></section>

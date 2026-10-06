@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { BrainCircuit, Code2, CreditCard, LayoutDashboard, LogOut, Menu, MessageCircle, QrCode, Settings, Store, X } from 'lucide-react'
+import { BrainCircuit, Code2, CreditCard, Gift, LayoutDashboard, LogOut, Menu, MessageCircle, QrCode, Settings, Store, X } from 'lucide-react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { signOutCurrentUser } from '@/lib/firebase/client'
@@ -65,6 +65,7 @@ export default function DashboardSidebar() {
         <Link href="/dashboard#telegram" onClick={closeMenu}><MessageCircle /> Telegram alerts</Link>
         <Link className={pathname === '/ai' ? 'active' : ''} href="/ai" onClick={closeMenu}><BrainCircuit /> Feedback Deo AI</Link>
         <Link className={pathname === '/widget' ? 'active' : ''} href="/widget" onClick={closeMenu}><Code2 /> Website widget</Link>
+        <Link className={pathname === '/referrals' ? 'active' : ''} href="/referrals" onClick={closeMenu}><Gift /> Refer &amp; Earn</Link>
         <Link className={pathname === '/payment' ? 'active' : ''} href="/payment" onClick={closeMenu}><CreditCard /> Billing <span className="nav-chevron">›</span></Link>
         <Link className={pathname === '/account' ? 'active' : ''} href="/account" onClick={closeMenu}><Settings /> Account</Link>
         <button type="button" className="sidebar-nav-logout" onClick={signOut}><LogOut /> Log out</button>

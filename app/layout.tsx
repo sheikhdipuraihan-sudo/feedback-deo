@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next"
 import "./globals.css"
+import "./referrals.css"
 import RouteProgress from "@/components/RouteProgress"
 
 export const metadata: Metadata = {

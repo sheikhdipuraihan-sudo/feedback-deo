@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { randomBytes, timingSafeEqual } from 'node:crypto'
 import { cookies } from 'next/headers'
 import { createSession, createUser, getUserByEmail, getUserByGoogleSub, getAuthAdminClient, publicUser } from '@/lib/auth/server'
+import { recordReferralSignup } from '@/lib/referrals/server'
 
 export const runtime = 'nodejs'
 const STATE_COOKIE = 'feedback_deo_google_state'
@@ -92,6 +93,7 @@ export async function handleGoogleCallback(request: Request) {
         user = data
       } else {
         user = await createUser({ email, password: randomBytes(48).toString('base64url'), googleSub: profile.sub, emailVerified: true, businessName: profile.name || '' })
+        await recordReferralSignup(user.id, user.email)
       }
     }
     await createSession(publicUser(user))

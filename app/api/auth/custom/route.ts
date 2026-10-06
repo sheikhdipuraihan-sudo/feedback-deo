@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { getFirebaseAdminAuth } from '@/lib/firebase/admin'
 import { ACCOUNT_CONFIRMATION_BASE_URL, sendAccountConfirmationEmail } from '@/lib/account-confirmation'
+import { recordReferralSignup } from '@/lib/referrals/server'
 import {
   createSession,
   createSupabaseAccessToken,
@@ -50,6 +51,7 @@ export async function POST(request: Request) {
     if (await getUserByEmail(email)) return bad('This email already has an account. Log in or use Forgot your password.', 409)
     try {
       const user = await createUser({ email, password, businessName: String(body.businessName || '') })
+      await recordReferralSignup(user.id, user.email)
       const publicRecord = publicUser(user)
       await createSession(publicRecord)
       try {

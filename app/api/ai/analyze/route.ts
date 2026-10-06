@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { getCurrentUserFromRequest } from '@/lib/auth/server'
 import { createClient as createSupabaseClient } from '@supabase/supabase-js'
 import { getBusinessTypeLabel } from '@/lib/business-types'
+import { hasProAccess } from '@/lib/pro-access'
 import { AIProviderRefusalError, AIProvidersUnavailableError, generateAIText, hasAIProvider } from '@/lib/ai/providers'
 
 export const runtime = 'nodejs'
@@ -28,10 +29,10 @@ export async function POST(request: Request) {
     if (!supabaseUrl || !supabaseKey) return NextResponse.json({ error: 'Feedback Deo AI is not configured for this deployment.' }, { status: 503 })
 
     const supabase = createSupabaseClient(supabaseUrl, supabaseKey, { global: { headers: { Authorization: `Bearer ${firebaseToken}` } } })
-    const { data: workspace, error: workspaceError } = await supabase.from('workspaces').select('id,name,slug,plan,status,business_type').eq('id', body.workspace_id).eq('owner_id', decoded.uid).maybeSingle()
+    const { data: workspace, error: workspaceError } = await supabase.from('workspaces').select('id,name,slug,plan,referral_pro_until,status,business_type').eq('id', body.workspace_id).eq('owner_id', decoded.uid).maybeSingle()
     if (workspaceError || !workspace) return NextResponse.json({ error: 'Workspace not found.' }, { status: 404 })
     if (workspace.status !== 'active') return NextResponse.json({ error: 'This workspace is not active.' }, { status: 403 })
-    if (workspace.plan !== 'pro') return NextResponse.json({ error: 'Advanced Feedback Deo AI is available on Pro.' }, { status: 403 })
+    if (!hasProAccess(workspace)) return NextResponse.json({ error: 'Advanced Feedback Deo AI is available on Pro.' }, { status: 403 })
 
     const { data: feedback, error: feedbackError } = await supabase.from('feedback').select('rating,comment,created_at').eq('workspace_id', workspace.id).order('created_at', { ascending: false }).limit(MAX_FEEDBACK)
     if (feedbackError) return NextResponse.json({ error: 'Could not read feedback for analysis.' }, { status: 500 })

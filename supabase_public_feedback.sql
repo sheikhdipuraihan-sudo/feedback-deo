@@ -82,7 +82,7 @@ declare current_workspace uuid; new_token text;
 begin
   select id into current_workspace from public.workspaces where owner_id = (auth.jwt() ->> 'sub') and status = 'active' order by created_at asc limit 1;
   if current_workspace is null then raise exception 'workspace not found'; end if;
-  if not exists (select 1 from public.workspaces where id = current_workspace and plan = 'pro') then raise exception 'telegram notifications require pro'; end if;
+  if not exists (select 1 from public.workspaces w where w.id = current_workspace and (w.plan = 'pro' or coalesce((to_jsonb(w) ->> 'referral_pro_until')::timestamptz > now(), false))) then raise exception 'telegram notifications require pro'; end if;
   delete from public.telegram_link_tokens where workspace_id = current_workspace or expires_at < now();
   new_token := replace(gen_random_uuid()::text, '-', '');
   insert into public.telegram_link_tokens(token, workspace_id) values (new_token, current_workspace);
@@ -106,7 +106,7 @@ as $$
 declare target_workspace uuid;
 begin
   if length(coalesce(telegram_chat_id, '')) < 1 or length(coalesce(notification_webhook_url, '')) < 20 then raise exception 'invalid telegram connection'; end if;
-  select workspace_id into target_workspace from public.telegram_link_tokens t join public.workspaces w on w.id = t.workspace_id where t.token = link_token and t.used_at is null and t.expires_at > now() and w.plan = 'pro' and w.status = 'active' limit 1;
+  select workspace_id into target_workspace from public.telegram_link_tokens t join public.workspaces w on w.id = t.workspace_id where t.token = link_token and t.used_at is null and t.expires_at > now() and (w.plan = 'pro' or coalesce((to_jsonb(w) ->> 'referral_pro_until')::timestamptz > now(), false)) and w.status = 'active' limit 1;
   if target_workspace is null then raise exception 'invalid or expired connection code'; end if;
   insert into public.telegram_connections(workspace_id, chat_id, telegram_username, webhook_url) values (target_workspace, telegram_chat_id, nullif(telegram_username, ''), notification_webhook_url)
   on conflict (workspace_id) do update set chat_id = excluded.chat_id, telegram_username = excluded.telegram_username, webhook_url = excluded.webhook_url, updated_at = now();
@@ -119,6 +119,6 @@ create or replace function public.get_telegram_notification_target(workspace_slu
 returns table(webhook_url text)
 language sql security definer set search_path = public
 as $$
-  select c.webhook_url from public.workspaces w join public.telegram_connections c on c.workspace_id = w.id where w.slug = workspace_slug and w.plan = 'pro' and w.status = 'active' limit 1;
+  select c.webhook_url from public.workspaces w join public.telegram_connections c on c.workspace_id = w.id where w.slug = workspace_slug and (w.plan = 'pro' or coalesce((to_jsonb(w) ->> 'referral_pro_until')::timestamptz > now(), false)) and w.status = 'active' limit 1;
 $$;
 grant execute on function public.get_telegram_notification_target(text) to anon, authenticated;
