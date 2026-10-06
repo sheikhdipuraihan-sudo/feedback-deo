@@ -165,6 +165,8 @@
 .ai-chat-placeholder{color:var(--muted);font-size:13px}
 .ai-stream-caret{display:inline-block;width:2px;height:1.08em;margin-left:3px;border-radius:1px;background:var(--green);vertical-align:-.14em;animation:ai-caret-blink 1s steps(1,end) infinite}
 @keyframes ai-caret-blink{50%{opacity:0}}
+.feedback-brand-row{display:flex;align-items:center;justify-content:space-between;gap:12px}.public-feedback-card .language-toggle{flex:none}.dashboard-sidebar-language{display:flex;justify-content:flex-start;margin:-8px 0 14px}
+.language-toggle{display:inline-flex;align-items:center;gap:5px;padding:4px 7px;border:1px solid var(--line);border-radius:999px;background:#fff;color:var(--muted);font:700 10px/1 'DM Sans',sans-serif;letter-spacing:.04em;white-space:nowrap}.language-toggle button{border:0;border-radius:999px;padding:5px 7px;background:transparent;color:inherit;font:inherit;cursor:pointer}.language-toggle button.active{background:var(--green);color:#fff}.language-toggle button:focus-visible{outline:2px solid #1c9c6a70;outline-offset:2px}.language-toggle.compact{padding:3px 5px}.language-toggle.compact button{padding:4px 6px}
 @media(prefers-reduced-motion:reduce){.ai-stream-caret{animation:none;opacity:1}}
 
 

@@ -5,8 +5,10 @@ import { BrainCircuit, Code2, CreditCard, Gift, LayoutDashboard, LogOut, Menu, M
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { signOutCurrentUser } from '@/lib/firebase/client'
+import { LanguageToggle, useLanguage } from '@/lib/i18n'
 
 export default function DashboardSidebar() {
+  const { t } = useLanguage()
   const pathname = usePathname()
   const router = useRouter()
   const [mobileOpen, setMobileOpen] = useState(false)
@@ -42,7 +44,7 @@ export default function DashboardSidebar() {
       <button
         type="button"
         className="dashboard-menu-toggle"
-        aria-label={mobileOpen ? 'Close dashboard menu' : 'Open dashboard menu'}
+        aria-label={mobileOpen ? t('nav.closeMenu') : t('nav.openMenu')}
         aria-expanded={mobileOpen}
         aria-controls="dashboard-mobile-navigation"
         onClick={() => setMobileOpen(open => !open)}
@@ -50,25 +52,26 @@ export default function DashboardSidebar() {
         {mobileOpen ? <X /> : <Menu />}
       </button>
     </header>
-    {mobileOpen && <button type="button" className="dashboard-sidebar-scrim" aria-label="Close dashboard menu" onClick={closeMenu} />}
+    {mobileOpen && <button type="button" className="dashboard-sidebar-scrim" aria-label={t('nav.closeMenu')} onClick={closeMenu} />}
     <aside id="dashboard-mobile-navigation" className={`dashboard-sidebar${mobileOpen ? ' mobile-open' : ''}`}>
       <div className="dashboard-sidebar-header">
         <Link className="dashboard-mark" href="/" aria-label="Feedback Deo home" onClick={closeMenu}>
           <span>feedback <b>deo</b><small>.</small></span>
         </Link>
-        <button type="button" className="dashboard-sidebar-close" aria-label="Close dashboard menu" onClick={closeMenu}><X /></button>
+        <button type="button" className="dashboard-sidebar-close" aria-label={t('nav.closeMenu')} onClick={closeMenu}><X /></button>
       </div>
+      <div className="dashboard-sidebar-language"><LanguageToggle /></div>
       <nav className="dashboard-nav" aria-label="Dashboard navigation">
-        <Link className={pathname === '/dashboard' ? 'active' : ''} href="/dashboard" onClick={closeMenu}><LayoutDashboard /> Overview</Link>
-        <Link href="/dashboard#space" onClick={closeMenu}><Store /> Feedback space</Link>
-        <Link className={pathname === '/qr' ? 'active' : ''} href="/qr" onClick={closeMenu}><QrCode /> QR &amp; Links</Link>
-        <Link href="/dashboard#telegram" onClick={closeMenu}><MessageCircle /> Telegram alerts</Link>
-        <Link className={pathname === '/ai' ? 'active' : ''} href="/ai" onClick={closeMenu}><BrainCircuit /> Feedback Deo AI</Link>
-        <Link className={pathname === '/widget' ? 'active' : ''} href="/widget" onClick={closeMenu}><Code2 /> Website widget</Link>
-        <Link className={pathname === '/referrals' ? 'active' : ''} href="/referrals" onClick={closeMenu}><Gift /> Refer &amp; Earn</Link>
-        <Link className={pathname === '/payment' ? 'active' : ''} href="/payment" onClick={closeMenu}><CreditCard /> Billing <span className="nav-chevron">›</span></Link>
-        <Link className={pathname === '/account' ? 'active' : ''} href="/account" onClick={closeMenu}><Settings /> Account</Link>
-        <button type="button" className="sidebar-nav-logout" onClick={signOut}><LogOut /> Log out</button>
+        <Link className={pathname === '/dashboard' ? 'active' : ''} href="/dashboard" onClick={closeMenu}><LayoutDashboard /> {t('nav.overview')}</Link>
+        <Link href="/dashboard#space" onClick={closeMenu}><Store /> {t('nav.feedbackSpace')}</Link>
+        <Link className={pathname === '/qr' ? 'active' : ''} href="/qr" onClick={closeMenu}><QrCode /> {t('nav.qrLinks')}</Link>
+        <Link href="/dashboard#telegram" onClick={closeMenu}><MessageCircle /> {t('nav.telegram')}</Link>
+        <Link className={pathname === '/ai' ? 'active' : ''} href="/ai" onClick={closeMenu}><BrainCircuit /> {t('nav.ai')}</Link>
+        <Link className={pathname === '/widget' ? 'active' : ''} href="/widget" onClick={closeMenu}><Code2 /> {t('nav.widget')}</Link>
+        <Link className={pathname === '/referrals' ? 'active' : ''} href="/referrals" onClick={closeMenu}><Gift /> {t('nav.referrals')}</Link>
+        <Link className={pathname === '/payment' ? 'active' : ''} href="/payment" onClick={closeMenu}><CreditCard /> {t('nav.billing')} <span className="nav-chevron">›</span></Link>
+        <Link className={pathname === '/account' ? 'active' : ''} href="/account" onClick={closeMenu}><Settings /> {t('nav.account')}</Link>
+        <button type="button" className="sidebar-nav-logout" onClick={signOut}><LogOut /> {t('nav.logout')}</button>
       </nav>
     </aside>
   </>
