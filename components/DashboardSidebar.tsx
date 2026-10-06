@@ -5,7 +5,7 @@ import { BrainCircuit, Code2, CreditCard, Gift, LayoutDashboard, LogOut, Menu, M
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { signOutCurrentUser } from '@/lib/firebase/client'
-import { LanguageToggle, useLanguage } from '@/lib/i18n'
+import { useLanguage } from '@/lib/i18n'
 
 export default function DashboardSidebar() {
   const { t } = useLanguage()
@@ -60,7 +60,6 @@ export default function DashboardSidebar() {
         </Link>
         <button type="button" className="dashboard-sidebar-close" aria-label={t('nav.closeMenu')} onClick={closeMenu}><X /></button>
       </div>
-      <div className="dashboard-sidebar-language"><LanguageToggle /></div>
       <nav className="dashboard-nav" aria-label="Dashboard navigation">
         <Link className={pathname === '/dashboard' ? 'active' : ''} href="/dashboard" onClick={closeMenu}><LayoutDashboard /> {t('nav.overview')}</Link>
         <Link href="/dashboard#space" onClick={closeMenu}><Store /> {t('nav.feedbackSpace')}</Link>

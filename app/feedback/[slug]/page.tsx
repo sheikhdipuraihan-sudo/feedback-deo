@@ -5,7 +5,7 @@ import { CheckCircle2, MessageSquare, ShieldCheck, Star } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import Preloader from '@/components/Preloader'
 import { notifyTelegram } from '@/lib/telegram'
-import { LanguageToggle, useLanguage } from '@/lib/i18n'
+import { useLanguage } from '@/lib/i18n'
 
 type Workspace = { id: string; name: string; slug: string }
 
@@ -72,7 +72,7 @@ export default function PublicFeedbackPage({ params }: Props) {
 
   return <main className="public-feedback-page">
     <section className="public-feedback-card soft-shadow">
-      <div className="feedback-brand-row"><div className="feedback-brand">feedback <span>deo</span>.</div><LanguageToggle compact /></div>
+      <div className="feedback-brand">feedback <span>deo</span>.</div>
       <div className="feedback-icon"><MessageSquare /></div>
       <p className="kicker">{workspace?.name}</p>
       <h1>{t('public.question')}</h1>
@@ -95,5 +95,5 @@ export default function PublicFeedbackPage({ params }: Props) {
 }
 
 function PageMessage({ title, body, icon }: { title: string; body: string; icon?: React.ReactNode }) {
-  return <main className="public-feedback-page"><section className="public-feedback-card message-card soft-shadow"><div className="feedback-brand-row"><div className="feedback-brand">feedback <span>deo</span>.</div><LanguageToggle compact /></div><div className="feedback-icon">{icon || <MessageSquare />}</div><h1>{title}</h1><p className="feedback-intro">{body}</p></section></main>
+  return <main className="public-feedback-page"><section className="public-feedback-card message-card soft-shadow"><div className="feedback-brand">feedback <span>deo</span>.</div><div className="feedback-icon">{icon || <MessageSquare />}</div><h1>{title}</h1><p className="feedback-intro">{body}</p></section></main>
 }

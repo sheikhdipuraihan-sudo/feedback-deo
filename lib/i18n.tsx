@@ -87,7 +87,13 @@ const DOM_TRANSLATIONS: Record<string, string> = {
   'ADMIN CONSOLE': 'অ্যাডমিন কনসোল', 'Operations overview': 'অপারেশনস ওভারভিউ', 'Payment requests': 'পেমেন্ট অনুরোধ', 'Total businesses': 'মোট ব্যবসা', 'Active Pro': 'সক্রিয় Pro', 'Pending payments': 'অমীমাংসিত পেমেন্ট', 'Banned businesses': 'ব্যান করা ব্যবসা', 'Search businesses, owner IDs, or transaction IDs': 'ব্যবসা, মালিকের ID বা ট্রানজ্যাকশন ID খুঁজুন', 'Log out': 'লগ আউট', 'Previous page': 'আগের পৃষ্ঠা', 'Next page': 'পরের পৃষ্ঠা',
 }
 
+const translationEntries = Object.entries(DOM_TRANSLATIONS).sort((a, b) => b[0].length - a[0].length)
 const originalText = new WeakMap<Text, string>()
+const originalAttributes = new WeakMap<Element, Map<string, string>>()
+
+function translateValue(value: string, locale: Locale) {
+  return locale === 'en' ? value : translationEntries.reduce((text, [from, to]) => text.replaceAll(from, to), value)
+}
 
 function translateDom(locale: Locale) {
   if (typeof document === 'undefined') return
@@ -99,7 +105,18 @@ function translateDom(locale: Locale) {
     if (!parent || parent.closest('script,style,textarea,input,select,option,.language-toggle')) return
     const original = originalText.get(node) || node.nodeValue || ''
     originalText.set(node, original)
-    node.nodeValue = locale === 'en' ? original : Object.entries(DOM_TRANSLATIONS).sort((a, b) => b[0].length - a[0].length).reduce((text, [from, to]) => text.replaceAll(from, to), original)
+    node.nodeValue = translateValue(original, locale)
+  })
+  document.querySelectorAll<HTMLElement>('[placeholder],[aria-label],[title],[alt]').forEach(element => {
+    if (element.closest('.language-toggle')) return
+    const attributes = originalAttributes.get(element) || new Map<string, string>()
+    for (const name of ['placeholder', 'aria-label', 'title', 'alt']) {
+      const value = element.getAttribute(name)
+      if (value === null) continue
+      if (!attributes.has(name)) attributes.set(name, value)
+      element.setAttribute(name, translateValue(attributes.get(name) || value, locale))
+    }
+    originalAttributes.set(element, attributes)
   })
 }
 
