@@ -17,6 +17,7 @@ export const metadata: Metadata = {
   authors: [{ name: siteName, url: siteUrl }],
   creator: siteName,
   publisher: siteName,
+  verification: { google: 'QYfyN7diScd1vh0SCDK0f62v-ob46iFFriWX3lSo-4Y' },
   alternates: { canonical: siteUrl },
   openGraph: {
     type: 'website',
