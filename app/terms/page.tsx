@@ -1,8 +1,10 @@
 import Link from 'next/link'
+import type { Metadata } from 'next'
 
-export const metadata = {
+export const metadata: Metadata = {
   title: 'Terms of Service | Feedback Deo',
   description: 'The terms that govern use of Feedback Deo customer-feedback tools.',
+  alternates: { canonical: '/terms' },
 }
 
 export default function TermsPage() {

@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" role="img" aria-labelledby="title desc">
+  <title id="title">Feedback Deo customer feedback platform</title>
+  <desc id="desc">Collect honest customer feedback with QR codes and improve your business.</desc>
+  <rect width="1200" height="630" fill="#f7f8f4"/>
+  <circle cx="1040" cy="-40" r="310" fill="#dceee4"/>
+  <circle cx="1140" cy="570" r="240" fill="#e9f4ee"/>
+  <rect x="82" y="82" width="86" height="86" rx="22" fill="#164333"/>
+  <path d="M108 112h34a17 17 0 0 1 17 17v10a17 17 0 0 1-17 17h-34a17 17 0 0 1-17-17v-10a17 17 0 0 1 17-17Z" fill="#bde8d0"/>
+  <text x="82" y="278" fill="#164333" font-family="Arial, Helvetica, sans-serif" font-size="74" font-weight="700">feedback <tspan fill="#2f9b68">deo.</tspan></text>
+  <text x="86" y="370" fill="#164333" font-family="Arial, Helvetica, sans-serif" font-size="42" font-weight="700">Know what your customers</text>
+  <text x="86" y="425" fill="#2f9b68" font-family="Arial, Helvetica, sans-serif" font-size="42" font-weight="700">really think.</text>
+  <text x="88" y="500" fill="#5d7168" font-family="Arial, Helvetica, sans-serif" font-size="24">QR feedback · customer insights · simple analytics</text>
+</svg>

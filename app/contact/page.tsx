@@ -1,9 +1,11 @@
 import Link from 'next/link'
 import { ArrowLeft, Mail } from 'lucide-react'
+import type { Metadata } from 'next'
 
-export const metadata = {
+export const metadata: Metadata = {
   title: 'Contact | Feedback Deo',
   description: 'Contact Feedback Deo at feedbackdeo@gmail.com.',
+  alternates: { canonical: '/contact' },
 }
 
 export default function ContactPage() {

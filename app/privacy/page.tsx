@@ -1,8 +1,10 @@
 import Link from 'next/link'
+import type { Metadata } from 'next'
 
-export const metadata = {
+export const metadata: Metadata = {
   title: 'Privacy Policy | Feedback Deo',
   description: 'How Feedback Deo collects, uses, protects, and deletes personal information.',
+  alternates: { canonical: '/privacy' },
 }
 
 export default function PrivacyPage() {
