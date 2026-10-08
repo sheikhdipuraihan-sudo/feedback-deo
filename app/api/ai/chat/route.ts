@@ -55,12 +55,11 @@ function createChatStream(messages: AIMessage[], fixedReply?: string): Response 
       const send = (event: Record<string, string>) => controller.enqueue(eventChunk(event))
       try {
         if (fixedReply) {
-          const words = fixedReply.match(/\S+\s*/g) || [fixedReply]
-          for (const word of words) {
-            fullText += word
-            send({ type: 'delta', text: word })
-            await new Promise(resolve => setTimeout(resolve, 18))
-          }
+          // These short FAQ/greeting replies are already complete. Stream them
+          // atomically so a dropped intermediate chunk cannot leave only an
+          // opening word such as "Yes." in the chat bubble.
+          fullText = fixedReply
+          send({ type: 'delta', text: fixedReply })
         } else {
           for await (const delta of streamAIText({ messages, temperature: 0.25, maxTokens: 700 })) {
             fullText += delta
