@@ -156,7 +156,10 @@ export default function FeedbackDeoAiPage() {
           accumulated += event.text
           updateAssistant(accumulated, true)
         } else if (event.type === 'done') {
-          if (typeof event.text === 'string' && event.text.trim()) accumulated = event.text
+          // The answer is already assembled from delta events. Some providers
+          // return an incomplete/short final value, so never let it replace a
+          // longer answer that was visibly streamed to the user.
+          if (!accumulated.trim() && typeof event.text === 'string' && event.text.trim()) accumulated = event.text
           eventCompleted = true
           updateAssistant(accumulated || "I'm Feedback Deo AI. I couldn't prepare a useful answer just now. Please try again.")
         } else if (event.type === 'error') {
