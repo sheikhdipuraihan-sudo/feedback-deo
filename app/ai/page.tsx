@@ -47,6 +47,16 @@ function chatErrorForStatus(status: number) {
   return "I'm Feedback Deo AI. I couldn't complete that response just now. Please try again in a moment."
 }
 
+function puterAuthFailureMessage(error: unknown) {
+  const details = error && typeof error === 'object'
+    ? ['error', 'code', 'message', 'msg'].map(key => key in error ? String((error as Record<string, unknown>)[key]) : '').join(' ')
+    : String(error || '')
+  if (/signup_blocked/i.test(details)) {
+    return 'Puter blocked account setup for this attempt. The app requests a temporary Puter account for users without one. If you already have a Puter account, choose “Log In”; otherwise Puter may be blocking new or temporary accounts right now.'
+  }
+  return 'Puter account setup did not complete. If you have an existing account, choose “Log In” in the Puter window. If you do not, try again later in case Puter is temporarily blocking new or temporary accounts.'
+}
+
 export default function FeedbackDeoAiPage() {
   const router = useRouter()
   const supabase = createClient()
@@ -86,10 +96,10 @@ export default function FeedbackDeoAiPage() {
     setPuterAuthLoading(true)
     setError('')
     try {
-      await puter.auth.signIn()
+      await puter.auth.signIn({ attempt_temp_user_creation: true })
       await refreshPuterStatus()
-    } catch {
-      setError('Puter sign-in did not complete. Please try again, or close the sign-in window and continue later.')
+    } catch (error) {
+      setError(puterAuthFailureMessage(error))
     } finally {
       setPuterAuthLoading(false)
     }
@@ -103,8 +113,8 @@ export default function FeedbackDeoAiPage() {
     try {
       await puter.auth.signIn({ request_auth: true })
       await refreshPuterStatus()
-    } catch {
-      setError('Puter account switching did not complete.')
+    } catch (error) {
+      setError(puterAuthFailureMessage(error))
     } finally {
       setPuterAuthLoading(false)
     }
@@ -210,10 +220,10 @@ export default function FeedbackDeoAiPage() {
     <section className="ai-page-intro"><div><p className="kicker">FEEDBACK DEO AI</p><h1>Business feedback, made clear.</h1><p>Understand customer patterns and find practical next steps for your {getBusinessTypeLabel(workspace.business_type).toLowerCase()}.</p></div><div className="ai-intro-icon"><Sparkles /></div></section>
     {error && <p className="form-error" role="alert">{error}</p>}
     <section className="ai-puter-auth" aria-live="polite">
-      <div><strong>{puterSignedIn ? `Puter connected${puterUsername ? ` as ${puterUsername}` : ''}` : 'Connect your Puter account for AI'}</strong><p>{puterSignedIn ? 'Chat and feedback analysis run through your signed-in Puter account.' : 'Sign in with Puter to use its AI for chat and analysis. Your prompt and relevant workspace feedback are sent to Puter. Puter’s own free allowance, usage limits, and any applicable charges apply.'}</p></div>
+      <div><strong>{puterSignedIn ? `Puter connected${puterUsername ? ` as ${puterUsername}` : ''}` : 'Connect Puter for AI'}</strong><p>{puterSignedIn ? 'Chat and feedback analysis run through your signed-in Puter account.' : 'Continue with Puter to use its AI for chat and analysis. If you do not have an account, Feedback Deo asks Puter to create a temporary one that you can upgrade later. Your prompt and relevant workspace feedback are sent to Puter; its free allowance, limits, and any applicable charges apply.'}</p></div>
       {puterSignedIn
         ? <button className="button outline" type="button" onClick={() => void switchPuterAccount()} disabled={puterAuthLoading}>{puterAuthLoading ? 'Opening Puter…' : 'Switch Puter account'}</button>
-        : <button className="button green" type="button" onClick={() => void signInToPuter()} disabled={!puterReady || puterAuthLoading}>{puterAuthLoading ? 'Connecting…' : puterReady ? 'Sign in with Puter' : 'Loading Puter…'}</button>}
+        : <button className="button green" type="button" onClick={() => void signInToPuter()} disabled={!puterReady || puterAuthLoading}>{puterAuthLoading ? 'Connecting…' : puterReady ? 'Continue with Puter' : 'Loading Puter…'}</button>}
     </section>
     <>
       <section className="ai-report-card"><div className="ai-card-heading"><div><p className="kicker">LATEST ANALYSIS</p><h2>Feedback report</h2><p>Clear themes and practical actions from your latest responses.</p></div><button className="button green" onClick={() => void runAnalysis()} disabled={analysisLoading || !puterSignedIn}>{analysisLoading ? 'Analyzing…' : analysis ? 'Run again' : 'Analyze feedback'} <BrainCircuit /></button></div>{analysis ? <div className="ai-report"><div className="ai-summary"><span className="ai-summary-label">Summary</span><p>{parsed.summary}</p></div><div className="ai-section-grid">{parsed.sections.map(section => <article className="ai-section" key={section.title}><h3>{section.title}</h3><ul>{section.items.map((item, index) => <li key={`${section.title}-${index}`}>{item}</li>)}</ul></article>)}</div></div> : <div className="ai-empty"><BrainCircuit /><h3>Ready when you are</h3><p>Run an analysis to turn the latest customer responses into a clear report for your business.</p></div>}</section>
