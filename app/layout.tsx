@@ -1,6 +1,5 @@
 import type { Metadata, Viewport } from 'next'
 import './globals.css'
-import './referrals.css'
 import RouteProgress from '@/components/RouteProgress'
 import { LanguageProvider } from '@/lib/i18n'
 import { siteDescription, siteName, siteUrl } from '@/lib/seo'

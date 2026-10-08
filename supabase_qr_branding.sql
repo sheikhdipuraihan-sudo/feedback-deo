@@ -43,62 +43,14 @@ RETURNS trigger
 LANGUAGE plpgsql
 SET search_path = public, pg_temp
 AS $$
-DECLARE
-  new_referral_pro_until timestamptz;
-  old_referral_pro_until timestamptz;
-  has_pro_access boolean;
 BEGIN
-  -- JSON access keeps this migration safe before and after referral_pro_until exists.
-  new_referral_pro_until := (to_jsonb(NEW) ->> 'referral_pro_until')::timestamptz;
-  IF TG_OP = 'UPDATE' THEN
-    old_referral_pro_until := (to_jsonb(OLD) ->> 'referral_pro_until')::timestamptz;
-  END IF;
-
-  IF (TG_OP = 'INSERT' AND NEW.plan = 'pro')
-     OR (TG_OP = 'UPDATE' AND NEW.plan IS DISTINCT FROM OLD.plan) THEN
-    IF current_user NOT IN ('postgres', 'service_role')
-       AND NOT COALESCE(public.is_subscription_admin(), false) THEN
-      RAISE EXCEPTION 'Subscription plan changes must use the approved billing workflow.' USING ERRCODE = '42501';
-    END IF;
-  END IF;
-
-  IF new_referral_pro_until IS NOT NULL
-     AND (TG_OP = 'INSERT' OR new_referral_pro_until IS DISTINCT FROM old_referral_pro_until)
-     AND current_user NOT IN ('postgres', 'service_role')
-     AND NOT COALESCE(public.is_subscription_admin(), false) THEN
-    RAISE EXCEPTION 'Referral Pro access must use the approved rewards workflow.' USING ERRCODE = '42501';
-  END IF;
-
   NEW.qr_theme := COALESCE(NEW.qr_theme, 'default');
-  has_pro_access := NEW.plan = 'pro' OR COALESCE(new_referral_pro_until > now(), false);
-  IF NOT has_pro_access THEN
-    IF TG_OP = 'UPDATE' AND OLD.plan = 'pro' AND NEW.plan IS DISTINCT FROM 'pro' THEN
-      -- A downgrade safely restores the default theme without touching QR links or branding.
-      NEW.qr_theme := 'default';
-      NEW.qr_brand_color := '#132b26';
-      NEW.qr_layout := 'stacked';
-    ELSIF TG_OP = 'INSERT' THEN
-      IF NEW.qr_theme <> 'default' THEN
-        RAISE EXCEPTION 'Premium QR themes require a Pro workspace.' USING ERRCODE = '42501';
-      END IF;
-      IF NEW.qr_brand_color <> '#132b26' OR NEW.qr_layout <> 'stacked' THEN
-        RAISE EXCEPTION 'Custom QR colors and layouts require a Pro workspace.' USING ERRCODE = '42501';
-      END IF;
-    ELSE
-      -- Preserve old stored QR data after a trial expires, while blocking new premium changes.
-      IF NEW.qr_theme <> 'default' AND NEW.qr_theme IS DISTINCT FROM OLD.qr_theme THEN
-        RAISE EXCEPTION 'Premium QR themes require a Pro workspace.' USING ERRCODE = '42501';
-      END IF;
-      IF (NEW.qr_brand_color <> '#132b26' AND NEW.qr_brand_color IS DISTINCT FROM OLD.qr_brand_color)
-         OR (NEW.qr_layout <> 'stacked' AND NEW.qr_layout IS DISTINCT FROM OLD.qr_layout) THEN
-        RAISE EXCEPTION 'Custom QR colors and layouts require a Pro workspace.' USING ERRCODE = '42501';
-      END IF;
-    END IF;
-  END IF;
+  NEW.qr_brand_color := COALESCE(NEW.qr_brand_color, '#132b26');
+  NEW.qr_layout := COALESCE(NEW.qr_layout, 'stacked');
+  NEW.qr_brand_text := COALESCE(NEW.qr_brand_text, '');
   RETURN NEW;
 END;
 $$;
-
 DROP TRIGGER IF EXISTS enforce_workspace_qr_theme_plan ON public.workspaces;
 CREATE TRIGGER enforce_workspace_qr_theme_plan
 BEFORE INSERT OR UPDATE ON public.workspaces

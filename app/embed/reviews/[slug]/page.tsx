@@ -2,7 +2,6 @@ import type { Metadata } from 'next'
 import { createClient as createSupabaseClient } from '@supabase/supabase-js'
 import { MessageSquare, Star } from 'lucide-react'
 import { getReviewWidgetLimit, getReviewWidgetTheme, verifyReviewWidgetToken } from '@/lib/embed/review-widget'
-import { hasProAccess } from '@/lib/pro-access'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -79,11 +78,11 @@ async function loadWidgetData(slug: string, supabaseUrl: string, secret: string,
     })
     const { data: workspace, error: workspaceError } = await supabase
       .from('workspaces')
-      .select('id,name,plan,referral_pro_until,status')
+      .select('id,name,status')
       .eq('slug', slug)
       .maybeSingle()
 
-    if (workspaceError || !workspace || !hasProAccess(workspace) || workspace.status !== 'active') return null
+    if (workspaceError || !workspace || workspace.status !== 'active') return null
 
     const { data, count, error } = await supabase
       .from('feedback')

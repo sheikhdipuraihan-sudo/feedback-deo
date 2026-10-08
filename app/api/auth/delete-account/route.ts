@@ -38,7 +38,6 @@ export async function POST(request: Request) {
       const cleanupResults = await Promise.all([
         supabase.from('feedback').delete().in('workspace_id', workspaceIds),
         supabase.from('tables').delete().in('workspace_id', workspaceIds),
-        supabase.from('subscription_payments').delete().in('workspace_id', workspaceIds),
         supabase.from('telegram_connections').delete().in('workspace_id', workspaceIds),
         supabase.from('telegram_link_tokens').delete().in('workspace_id', workspaceIds),
       ])

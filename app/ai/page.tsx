@@ -9,9 +9,8 @@ import { waitForFirebaseUser } from '@/lib/firebase/client'
 import Preloader from '@/components/Preloader'
 import DashboardPageFrame from '@/components/DashboardPageFrame'
 import { getBusinessTypeLabel } from '@/lib/business-types'
-import { hasProAccess } from '@/lib/pro-access'
 
-type Workspace = { id: string; name: string; plan: 'free' | 'pro'; referral_pro_until?: string | null; status: 'active' | 'banned'; business_type?: string }
+type Workspace = { id: string; name: string; status: 'active' | 'banned'; business_type?: string }
 type ChatMessage = { role: 'user' | 'assistant'; content: string; streaming?: boolean }
 type ChatStreamEvent = { type?: string; code?: string; text?: string }
 type AnalysisSection = { title: string; items: string[]; summary?: string }
@@ -72,7 +71,7 @@ async function consumeChatStream(response: Response, onEvent: (event: ChatStream
 
 function chatErrorForStatus(status: number) {
   if (status === 401) return 'Please sign in again to continue chatting with Feedback Deo AI.'
-  if (status === 403) return 'Feedback Deo AI chat is available on an active Pro workspace.'
+  if (status === 403) return 'Feedback Deo AI is unavailable for this workspace.'
   if (status === 400) return 'Try asking a question about your workspace or customer feedback.'
   if (status === 404) return 'Your workspace could not be found. Refresh the dashboard and try again.'
   return "I'm Feedback Deo AI. I couldn't complete that response just now. Please try again in a moment."
@@ -90,13 +89,12 @@ export default function FeedbackDeoAiPage() {
   const [chat, setChat] = useState<ChatMessage[]>([])
   const [error, setError] = useState('')
   const parsed = useMemo(() => parseAnalysis(analysis), [analysis])
-  const workspaceHasPro = hasProAccess(workspace)
 
   const loadWorkspace = useCallback(async () => {
     if (!supabase) { setError('Supabase is not configured for this deployment.'); setLoading(false); return }
     const user = await waitForFirebaseUser()
     if (!user) { router.replace('/?auth=login'); return }
-    const result = await supabase.from('workspaces').select('id,name,plan,referral_pro_until,status,business_type').eq('owner_id', user.uid).order('created_at', { ascending: true }).limit(1).maybeSingle()
+    const result = await supabase.from('workspaces').select('id,name,status,business_type').eq('owner_id', user.uid).order('created_at', { ascending: true }).limit(1).maybeSingle()
     if (result.error) setError('We could not load your workspace. Please try again.')
     setWorkspace(result.data as Workspace | null)
     setLoading(false)
@@ -112,7 +110,7 @@ export default function FeedbackDeoAiPage() {
   }
 
   async function runAnalysis() {
-    if (!workspace || !workspaceHasPro) return
+    if (!workspace) return
     setAnalysisLoading(true); setError('')
     try {
       const token = await getToken()
@@ -128,7 +126,7 @@ export default function FeedbackDeoAiPage() {
   async function sendChat(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     const message = chatInput.trim()
-    if (!workspace || !workspaceHasPro || !message || chatLoading) return
+    if (!workspace || !message || chatLoading) return
 
     setChatInput('')
     setError('')
@@ -190,9 +188,9 @@ export default function FeedbackDeoAiPage() {
   return <DashboardPageFrame mainClassName="ai-page-shell">
     <section className="ai-page-intro"><div><p className="kicker">FEEDBACK DEO AI</p><h1>Business feedback, made clear.</h1><p>Understand customer patterns and find practical next steps for your {getBusinessTypeLabel(workspace.business_type).toLowerCase()}.</p></div><div className="ai-intro-icon"><Sparkles /></div></section>
     {error && <p className="form-error" role="alert">{error}</p>}
-    {!workspaceHasPro ? <section className="ai-upgrade-card"><div className="ai-panel-icon"><BrainCircuit /></div><div><p className="kicker">PRO FEATURE</p><h2>Unlock your feedback assistant</h2><p>Get workspace-specific feedback analysis and an AI chat grounded in your business information and customer feedback.</p></div><Link className="button green" href="/payment">Unlock with Pro <ArrowRight /></Link></section> : <>
+    <>
       <section className="ai-report-card"><div className="ai-card-heading"><div><p className="kicker">LATEST ANALYSIS</p><h2>Feedback report</h2><p>Clear themes and practical actions from your latest responses.</p></div><button className="button green" onClick={() => void runAnalysis()} disabled={analysisLoading}>{analysisLoading ? 'Analyzing…' : analysis ? 'Run again' : 'Analyze feedback'} <BrainCircuit /></button></div>{analysis ? <div className="ai-report"><div className="ai-summary"><span className="ai-summary-label">Summary</span><p>{parsed.summary}</p></div><div className="ai-section-grid">{parsed.sections.map(section => <article className="ai-section" key={section.title}><h3>{section.title}</h3><ul>{section.items.map((item, index) => <li key={`${section.title}-${index}`}>{item}</li>)}</ul></article>)}</div></div> : <div className="ai-empty"><BrainCircuit /><h3>Ready when you are</h3><p>Run an analysis to turn the latest customer responses into a clear report for your business.</p></div>}</section>
       <section className="ai-chat-card"><div className="ai-card-heading"><div><p className="kicker">ASK FEEDBACK DEO AI</p><h2>Chat about your business</h2><p>Ask about customer feedback, workspace insights, or how to use Feedback Deo.</p></div><div className="ai-chat-badge"><Sparkles /> Feedback Deo AI</div></div><div className="ai-chat-window" aria-label="Feedback Deo AI conversation">{chat.length === 0 && <div className="ai-chat-welcome"><div className="ai-chat-avatar"><BrainCircuit /></div><div><strong>Hi, I’m Feedback Deo AI.</strong><p>I know your business type, feedback points, QR branding, and recent customer responses. Ask me a question to get started.</p></div></div>}{chat.map((item, index) => <div className={`ai-message ${item.role}`} key={`${item.role}-${index}`}><div className="ai-message-avatar">{item.role === 'assistant' ? <BrainCircuit /> : <UserRound />}</div><div className="ai-message-bubble" aria-live={item.role === 'assistant' && !item.streaming ? 'polite' : undefined}>{item.content || (item.streaming ? <span className="ai-chat-placeholder">Feedback Deo AI is responding</span> : '')}{item.streaming && <span className="ai-stream-caret" aria-hidden="true" />}</div></div>)}</div><form className="ai-chat-form" onSubmit={sendChat}><input value={chatInput} onChange={event => setChatInput(event.target.value)} placeholder="Ask about your feedback or workspace…" aria-label="Ask Feedback Deo AI" maxLength={500} /><button className="button green" disabled={chatLoading || !chatInput.trim()} aria-label="Send message"><Send /></button></form></section>
-    </>}
+    </>
   </DashboardPageFrame>
 }

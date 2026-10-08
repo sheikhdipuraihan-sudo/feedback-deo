@@ -2,7 +2,6 @@ import { NextResponse } from 'next/server'
 import { createClient as createSupabaseClient } from '@supabase/supabase-js'
 import { getCurrentUserFromRequest } from '@/lib/auth/server'
 import { createReviewWidgetToken } from '@/lib/embed/review-widget'
-import { hasProAccess } from '@/lib/pro-access'
 
 export const runtime = 'nodejs'
 
@@ -31,14 +30,13 @@ export async function POST(request: Request) {
   })
   const { data: workspace, error } = await supabase
     .from('workspaces')
-    .select('id,slug,plan,referral_pro_until,status')
+    .select('id,slug,status')
     .eq('id', body.workspace_id)
     .eq('owner_id', decoded.uid)
     .maybeSingle()
 
   if (error || !workspace) return NextResponse.json({ error: 'Workspace not found.' }, { status: 404 })
   if (workspace.status !== 'active') return NextResponse.json({ error: 'This workspace is not active.' }, { status: 403 })
-  if (!hasProAccess(workspace)) return NextResponse.json({ error: 'The website reviews widget is available on Pro.' }, { status: 403 })
 
   return NextResponse.json(
     { token: createReviewWidgetToken(workspace.slug, signingSecret) },

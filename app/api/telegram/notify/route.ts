@@ -3,12 +3,9 @@ import { createClient } from '@/lib/supabase/server'
 
 type NotificationBody = {
   workspace_slug?: string
-  event?: 'feedback' | 'payment_submitted' | 'payment_updated'
+  event?: 'feedback'
   rating?: number
   comment?: string
-  transaction_id?: string
-  status?: string
-  note?: string | null
 }
 
 export async function POST(request: Request) {
@@ -24,9 +21,6 @@ export async function POST(request: Request) {
       workspace_slug: body.workspace_slug,
       rating: body.rating,
       comment: body.comment?.slice(0, 2000),
-      transaction_id: body.transaction_id,
-      status: body.status,
-      note: body.note?.slice(0, 500) || null,
     }
     const response = await fetch(target.webhook_url, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(payload), signal: AbortSignal.timeout(8000) })
     return NextResponse.json({ ok: response.ok, connected: true })

@@ -2,7 +2,6 @@ import { NextResponse } from 'next/server'
 import { createClient as createSupabaseClient } from '@supabase/supabase-js'
 import { getCurrentUserFromRequest } from '@/lib/auth/server'
 import { getBusinessTypeLabel } from '@/lib/business-types'
-import { hasProAccess } from '@/lib/pro-access'
 import {
   buildChatSystemPrompt,
   FEEDBACK_DEO_IDENTITY_REPLY,
@@ -32,8 +31,6 @@ type ChatTurn = { role: 'user' | 'assistant'; content: string }
 type WorkspaceRecord = {
   id: string
   name: string
-  plan: 'free' | 'pro'
-  referral_pro_until?: string | null
   status: 'active' | 'banned'
   business_type?: string | null
   qr_theme?: string | null
@@ -121,14 +118,13 @@ export async function POST(request: Request) {
     })
     const { data: workspaceData, error: workspaceError } = await supabase
       .from('workspaces')
-      .select('id,name,plan,referral_pro_until,status,business_type,qr_theme,qr_business_name,qr_brand_color,qr_layout,qr_brand_text')
+      .select('id,name,status,business_type,qr_theme,qr_business_name,qr_brand_color,qr_layout,qr_brand_text')
       .eq('id', workspaceId)
       .eq('owner_id', decoded.uid)
       .maybeSingle()
     const workspace = workspaceData as WorkspaceRecord | null
     if (workspaceError || !workspace) return NextResponse.json({ error: 'Workspace not found.' }, { status: 404 })
     if (workspace.status !== 'active') return NextResponse.json({ error: 'This workspace is not active.' }, { status: 403 })
-    if (!hasProAccess(workspace)) return NextResponse.json({ error: 'Feedback Deo AI chat is available on Pro.' }, { status: 403 })
 
     if (isAssistantIdentityQuestion(message)) return createChatStream([], FEEDBACK_DEO_IDENTITY_REPLY)
     if (!hasAIProvider()) return NextResponse.json({ error: 'Feedback Deo AI is temporarily unavailable. Please try again in a moment.' }, { status: 503 })
@@ -148,7 +144,7 @@ export async function POST(request: Request) {
     const systemPrompt = buildChatSystemPrompt({
       name: workspace.name,
       businessType,
-      plan: hasProAccess(workspace) ? 'pro' : 'free',
+      plan: 'free',
       feedbackPointNames: (feedbackPoints || []).map(point => String(point.name || '')).filter(Boolean),
       qrBranding: {
         businessName: workspace.qr_business_name || null,

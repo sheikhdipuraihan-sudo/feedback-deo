@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { BrainCircuit, Code2, CreditCard, Gift, LayoutDashboard, LogOut, Menu, MessageCircle, QrCode, Settings, Store, X } from 'lucide-react'
+import { BrainCircuit, Code2, LayoutDashboard, LogOut, Menu, MessageCircle, QrCode, Settings, Store, X } from 'lucide-react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { signOutCurrentUser } from '@/lib/firebase/client'
@@ -67,8 +67,6 @@ export default function DashboardSidebar() {
         <Link href="/dashboard#telegram" onClick={closeMenu}><MessageCircle /> {t('nav.telegram')}</Link>
         <Link className={pathname === '/ai' ? 'active' : ''} href="/ai" onClick={closeMenu}><BrainCircuit /> {t('nav.ai')}</Link>
         <Link className={pathname === '/widget' ? 'active' : ''} href="/widget" onClick={closeMenu}><Code2 /> {t('nav.widget')}</Link>
-        <Link className={pathname === '/referrals' ? 'active' : ''} href="/referrals" onClick={closeMenu}><Gift /> {t('nav.referrals')}</Link>
-        <Link className={pathname === '/payment' ? 'active' : ''} href="/payment" onClick={closeMenu}><CreditCard /> {t('nav.billing')} <span className="nav-chevron">›</span></Link>
         <Link className={pathname === '/account' ? 'active' : ''} href="/account" onClick={closeMenu}><Settings /> {t('nav.account')}</Link>
         <button type="button" className="sidebar-nav-logout" onClick={signOut}><LogOut /> {t('nav.logout')}</button>
       </nav>
