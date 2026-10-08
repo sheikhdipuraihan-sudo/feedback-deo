@@ -5,9 +5,13 @@ import { getBusinessTypeLabel } from '@/lib/business-types'
 import {
   buildChatSystemPrompt,
   FEEDBACK_DEO_IDENTITY_REPLY,
+  FEEDBACK_DEO_FREE_REPLY,
+  FEEDBACK_DEO_GREETING_REPLY,
   FEEDBACK_DEO_REFUSAL_REPLY,
   FEEDBACK_DEO_TEMPORARY_REPLY,
   isAssistantIdentityQuestion,
+  isFreeWebsiteQuestion,
+  isSimpleGreeting,
   normalizeChatOutput,
 } from '@/lib/ai/prompts'
 import {
@@ -126,6 +130,8 @@ export async function POST(request: Request) {
     if (workspaceError || !workspace) return NextResponse.json({ error: 'Workspace not found.' }, { status: 404 })
     if (workspace.status !== 'active') return NextResponse.json({ error: 'This workspace is not active.' }, { status: 403 })
 
+    if (isSimpleGreeting(message)) return createChatStream([], FEEDBACK_DEO_GREETING_REPLY)
+    if (isFreeWebsiteQuestion(message)) return createChatStream([], FEEDBACK_DEO_FREE_REPLY)
     if (isAssistantIdentityQuestion(message)) return createChatStream([], FEEDBACK_DEO_IDENTITY_REPLY)
     if (!hasAIProvider()) return NextResponse.json({ error: 'Feedback Deo AI is temporarily unavailable. Please try again in a moment.' }, { status: 503 })
 
