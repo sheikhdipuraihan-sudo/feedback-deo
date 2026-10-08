@@ -10,6 +10,7 @@ const MAX_COMMENT_LENGTH = 1000
 
 type FeedbackRecord = { rating: number; comment: string; created_at: string }
 type ChatTurn = { role: 'user' | 'assistant'; content: string }
+type ChatContextMessage = { role: 'system' | 'user' | 'assistant'; content: string }
 
 type WorkspaceRecord = {
   id: string
@@ -99,7 +100,7 @@ export async function POST(request: Request) {
     const turns: ChatTurn[] = alreadyIncludesQuestion
       ? history
       : [...history.slice(-7), { role: 'user', content: message }]
-    const messages: PuterChatMessage[] = [
+    const messages: ChatContextMessage[] = [
       { role: 'system', content: systemPrompt },
       ...turns,
     ]
