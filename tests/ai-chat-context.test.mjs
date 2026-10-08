@@ -58,6 +58,12 @@ test('assistant identity and refusal replies use the product brand', () => {
   assert.equal(isAssistantIdentityQuestion('What should I improve first?'), false)
 })
 
+test('greetings are left to the model for natural, complete replies', () => {
+  const prompt = buildChatSystemPrompt(workspace, records)
+  assert.match(prompt, /For greetings, respond naturally and politely in a complete sentence/i)
+  assert.match(prompt, /match the user's language and tone without forcing a scripted phrase/i)
+})
+
 test('normalization removes Markdown, emoji, and provider self-identification', () => {
   const result = normalizeChatOutput('### **I\'m Liquid AI, powered by OpenRouter.**\n\nWe saw *two comments*. ✨')
   assert.match(result, /I'm Feedback Deo AI/)
