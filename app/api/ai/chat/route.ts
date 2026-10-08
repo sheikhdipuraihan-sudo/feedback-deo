@@ -2,26 +2,11 @@ import { NextResponse } from 'next/server'
 import { createClient as createSupabaseClient } from '@supabase/supabase-js'
 import { getCurrentUserFromRequest } from '@/lib/auth/server'
 import { getBusinessTypeLabel } from '@/lib/business-types'
-import {
-  buildChatSystemPrompt,
-  FEEDBACK_DEO_REFUSAL_REPLY,
-  FEEDBACK_DEO_TEMPORARY_REPLY,
-  normalizeChatOutput,
-} from '@/lib/ai/prompts'
-import {
-  AIProviderRefusalError,
-  AIProviderStreamInterruptedError,
-  AIProvidersUnavailableError,
-  hasAIProvider,
-  streamAIText,
-  type AIMessage,
-} from '@/lib/ai/providers'
+import { buildChatSystemPrompt } from '@/lib/ai/prompts'
 
 export const runtime = 'nodejs'
-export const maxDuration = 30
 const MAX_FEEDBACK = 100
 const MAX_COMMENT_LENGTH = 1000
-const encoder = new TextEncoder()
 
 type FeedbackRecord = { rating: number; comment: string; created_at: string }
 type ChatTurn = { role: 'user' | 'assistant'; content: string }
@@ -37,61 +22,6 @@ type WorkspaceRecord = {
   qr_brand_color?: string | null
   qr_layout?: string | null
   qr_brand_text?: string | null
-}
-
-function eventChunk(event: Record<string, string>): Uint8Array {
-  return encoder.encode(`data: ${JSON.stringify(event)}\n\n`)
-}
-
-function createChatStream(messages: AIMessage[], fixedReply?: string): Response {
-  const body = new ReadableStream<Uint8Array>({
-    async start(controller) {
-      let fullText = ''
-      const send = (event: Record<string, string>) => controller.enqueue(eventChunk(event))
-      try {
-        if (fixedReply) {
-          // These short FAQ/greeting replies are already complete. Stream them
-          // atomically so a dropped intermediate chunk cannot leave only an
-          // opening word such as "Yes." in the chat bubble.
-          fullText = fixedReply
-          send({ type: 'delta', text: fixedReply })
-        } else {
-          for await (const delta of streamAIText({ messages, temperature: 0.25, maxTokens: 700 })) {
-            fullText += delta
-            send({ type: 'delta', text: delta })
-          }
-        }
-        const finalText = normalizeChatOutput(fullText)
-        if (!finalText) {
-          send({ type: 'error', code: 'empty', text: FEEDBACK_DEO_TEMPORARY_REPLY })
-        } else {
-          send({ type: 'done', text: finalText })
-        }
-      } catch (error) {
-        if (error instanceof AIProviderRefusalError) {
-          send({ type: 'error', code: 'refused', text: FEEDBACK_DEO_REFUSAL_REPLY })
-        } else if (error instanceof AIProviderStreamInterruptedError) {
-          send({ type: 'error', code: 'interrupted', text: 'The connection was interrupted while I was replying. Please try your question again.' })
-        } else {
-          if (!(error instanceof AIProvidersUnavailableError)) {
-            console.error('feedback_deo_ai_chat_failed', { name: error instanceof Error ? error.name : 'unknown' })
-          }
-          send({ type: 'error', code: 'unavailable', text: FEEDBACK_DEO_TEMPORARY_REPLY })
-        }
-      } finally {
-        try { controller.close() } catch { /* the client may have disconnected */ }
-      }
-    },
-  })
-
-  return new Response(body, {
-    headers: {
-      'Content-Type': 'text/event-stream; charset=utf-8',
-      'Cache-Control': 'no-cache, no-transform',
-      Connection: 'keep-alive',
-      'X-Accel-Buffering': 'no',
-    },
-  })
 }
 
 export async function POST(request: Request) {
@@ -123,8 +53,6 @@ export async function POST(request: Request) {
     const workspace = workspaceData as WorkspaceRecord | null
     if (workspaceError || !workspace) return NextResponse.json({ error: 'Workspace not found.' }, { status: 404 })
     if (workspace.status !== 'active') return NextResponse.json({ error: 'This workspace is not active.' }, { status: 403 })
-
-    if (!hasAIProvider()) return NextResponse.json({ error: 'Feedback Deo AI is temporarily unavailable. Please try again in a moment.' }, { status: 503 })
 
     const [{ data: feedback, error: feedbackError }, { data: feedbackPoints }, { data: telegramRows, error: telegramError }] = await Promise.all([
       supabase.from('feedback').select('rating,comment,created_at').eq('workspace_id', workspace.id).order('created_at', { ascending: false }).limit(MAX_FEEDBACK),
@@ -171,12 +99,12 @@ export async function POST(request: Request) {
     const turns: ChatTurn[] = alreadyIncludesQuestion
       ? history
       : [...history.slice(-7), { role: 'user', content: message }]
-    const messages: AIMessage[] = [
+    const messages: PuterChatMessage[] = [
       { role: 'system', content: systemPrompt },
       ...turns,
     ]
 
-    return createChatStream(messages)
+    return NextResponse.json({ messages }, { headers: { 'Cache-Control': 'no-store' } })
   } catch (error) {
     console.error('feedback_deo_ai_chat_request_failed', { name: error instanceof Error ? error.name : 'unknown' })
     return NextResponse.json({ error: 'Feedback Deo AI could not complete that request. Please try again.' }, { status: 500 })

@@ -3,7 +3,6 @@ import test from 'node:test'
 
 const {
   buildChatSystemPrompt,
-  FEEDBACK_DEO_REFUSAL_REPLY,
   normalizeChatOutput,
 } = await import('../lib/ai/prompts.ts')
 
@@ -47,11 +46,6 @@ test('chat context includes workspace type, plan, points, branding, metrics, and
   assert.match(prompt, /"averageRating":4/)
   assert.match(prompt, /untrusted customer text/i)
   assert.match(prompt, /All records returned for this workspace/i)
-})
-
-test('error refusal replies use the product brand without exposing implementation details', () => {
-  assert.match(FEEDBACK_DEO_REFUSAL_REPLY, /Feedback Deo AI/)
-  assert.doesNotMatch(FEEDBACK_DEO_REFUSAL_REPLY, /safety|provider|model/i)
 })
 
 test('greetings are left to the model for natural, complete replies', () => {

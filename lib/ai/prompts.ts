@@ -19,12 +19,6 @@ export type ChatWorkspaceContext = {
   }
 }
 
-export const FEEDBACK_DEO_REFUSAL_REPLY =
-  "I'm Feedback Deo AI. I can't help with that exact request, but I can help you understand your customer feedback or use Feedback Deo."
-
-export const FEEDBACK_DEO_TEMPORARY_REPLY =
-  "I'm Feedback Deo AI. I couldn't complete that response just now. Please try again in a moment; your feedback is still saved."
-
 export function buildChatSystemPrompt(
   workspace: ChatWorkspaceContext,
   records: ChatFeedbackRecord[],
