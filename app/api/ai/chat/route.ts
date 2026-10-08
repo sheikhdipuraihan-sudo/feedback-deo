@@ -4,12 +4,8 @@ import { getCurrentUserFromRequest } from '@/lib/auth/server'
 import { getBusinessTypeLabel } from '@/lib/business-types'
 import {
   buildChatSystemPrompt,
-  FEEDBACK_DEO_IDENTITY_REPLY,
-  FEEDBACK_DEO_FREE_REPLY,
   FEEDBACK_DEO_REFUSAL_REPLY,
   FEEDBACK_DEO_TEMPORARY_REPLY,
-  isAssistantIdentityQuestion,
-  isFreeWebsiteQuestion,
   normalizeChatOutput,
 } from '@/lib/ai/prompts'
 import {
@@ -34,6 +30,7 @@ type WorkspaceRecord = {
   id: string
   name: string
   status: 'active' | 'banned'
+  plan?: string | null
   business_type?: string | null
   qr_theme?: string | null
   qr_business_name?: string | null
@@ -119,7 +116,7 @@ export async function POST(request: Request) {
     })
     const { data: workspaceData, error: workspaceError } = await supabase
       .from('workspaces')
-      .select('id,name,status,business_type,qr_theme,qr_business_name,qr_brand_color,qr_layout,qr_brand_text')
+      .select('id,name,status,plan,business_type,qr_theme,qr_business_name,qr_brand_color,qr_layout,qr_brand_text')
       .eq('id', workspaceId)
       .eq('owner_id', decoded.uid)
       .maybeSingle()
@@ -127,13 +124,12 @@ export async function POST(request: Request) {
     if (workspaceError || !workspace) return NextResponse.json({ error: 'Workspace not found.' }, { status: 404 })
     if (workspace.status !== 'active') return NextResponse.json({ error: 'This workspace is not active.' }, { status: 403 })
 
-    if (isFreeWebsiteQuestion(message)) return createChatStream([], FEEDBACK_DEO_FREE_REPLY)
-    if (isAssistantIdentityQuestion(message)) return createChatStream([], FEEDBACK_DEO_IDENTITY_REPLY)
     if (!hasAIProvider()) return NextResponse.json({ error: 'Feedback Deo AI is temporarily unavailable. Please try again in a moment.' }, { status: 503 })
 
-    const [{ data: feedback, error: feedbackError }, { data: feedbackPoints }] = await Promise.all([
+    const [{ data: feedback, error: feedbackError }, { data: feedbackPoints }, { data: telegramRows, error: telegramError }] = await Promise.all([
       supabase.from('feedback').select('rating,comment,created_at').eq('workspace_id', workspace.id).order('created_at', { ascending: false }).limit(MAX_FEEDBACK),
       supabase.from('tables').select('name').eq('workspace_id', workspace.id).order('created_at', { ascending: true }).limit(50),
+      supabase.rpc('get_telegram_connection'),
     ])
     if (feedbackError) return NextResponse.json({ error: 'Feedback Deo AI could not read this workspace’s feedback. Please try again.' }, { status: 500 })
 
@@ -146,7 +142,13 @@ export async function POST(request: Request) {
     const systemPrompt = buildChatSystemPrompt({
       name: workspace.name,
       businessType,
-      plan: 'free',
+      plan: workspace.plan || undefined,
+      telegram: !telegramError && telegramRows
+        ? (() => {
+          const row = Array.isArray(telegramRows) ? telegramRows[0] : telegramRows
+          return row ? { connected: Boolean(row.connected), username: row.telegram_username || null } : null
+        })()
+        : null,
       feedbackPointNames: (feedbackPoints || []).map(point => String(point.name || '')).filter(Boolean),
       qrBranding: {
         businessName: workspace.qr_business_name || null,

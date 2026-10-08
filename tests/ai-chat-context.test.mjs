@@ -3,9 +3,7 @@ import test from 'node:test'
 
 const {
   buildChatSystemPrompt,
-  FEEDBACK_DEO_IDENTITY_REPLY,
   FEEDBACK_DEO_REFUSAL_REPLY,
-  isAssistantIdentityQuestion,
   normalizeChatOutput,
 } = await import('../lib/ai/prompts.ts')
 
@@ -31,16 +29,18 @@ const records = [
 test('chat system prompt identifies only as Feedback Deo AI and includes product context', () => {
   const prompt = buildChatSystemPrompt(workspace, records)
   assert.match(prompt, /You are Feedback Deo AI/)
+  assert.match(prompt, /IDENTITY AND BRAND — HIGHEST PRIORITY/)
+  assert.match(prompt, /persistent across the entire conversation/)
   assert.match(prompt, /Never call yourself Liquid AI/i)
   assert.match(prompt, /Feedback Deo helps businesses collect customer ratings/i)
-  assert.match(prompt, /do not assume or claim plan prices, subscription entitlements, quotas, or features/i)
+  assert.match(prompt, /Feedback Deo is currently free to use/i)
   assert.match(prompt, /Do not claim the product can send customer replies, create standalone improvement plans in the app/i)
   assert.match(prompt, /never claim an action was completed unless the application confirms it/i)
 })
 
 test('chat context includes workspace type, plan, points, branding, metrics, and actual feedback', () => {
-  const prompt = buildChatSystemPrompt(workspace, records)
-  for (const value of ['Texmart', 'Fashion store', 'pro', 'Checkout', 'Online orders', 'modern', '#146b50', 'Scan to share your feedback', 'gentle', 'delivery took longer']) {
+  const prompt = buildChatSystemPrompt({ ...workspace, telegram: { connected: true, username: 'texmart_bot' } }, records)
+  for (const value of ['Texmart', 'Fashion store', 'pro', 'Checkout', 'Online orders', 'modern', '#146b50', 'Scan to share your feedback', 'texmart_bot', 'gentle', 'delivery took longer']) {
     assert.ok(prompt.includes(value), `Expected chat context to include ${value}`)
   }
   assert.match(prompt, /"recordsIncluded":2/)
@@ -49,13 +49,9 @@ test('chat context includes workspace type, plan, points, branding, metrics, and
   assert.match(prompt, /All records returned for this workspace/i)
 })
 
-test('assistant identity and refusal replies use the product brand', () => {
-  assert.match(FEEDBACK_DEO_IDENTITY_REPLY, /Feedback Deo AI/)
+test('error refusal replies use the product brand without exposing implementation details', () => {
   assert.match(FEEDBACK_DEO_REFUSAL_REPLY, /Feedback Deo AI/)
   assert.doesNotMatch(FEEDBACK_DEO_REFUSAL_REPLY, /safety|provider|model/i)
-  assert.equal(isAssistantIdentityQuestion('Are you Liquid AI?'), true)
-  assert.equal(isAssistantIdentityQuestion('Who are you?'), true)
-  assert.equal(isAssistantIdentityQuestion('What should I improve first?'), false)
 })
 
 test('greetings are left to the model for natural, complete replies', () => {
