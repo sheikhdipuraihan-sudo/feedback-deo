@@ -9,6 +9,7 @@ import { waitForFirebaseUser } from '@/lib/firebase/client'
 import Preloader from '@/components/Preloader'
 import DashboardPageFrame from '@/components/DashboardPageFrame'
 import { getBusinessTypeLabel } from '@/lib/business-types'
+import { chooseFinalChatText } from '@/lib/ai/chat-stream'
 
 type Workspace = { id: string; name: string; status: 'active' | 'banned'; business_type?: string }
 type ChatMessage = { role: 'user' | 'assistant'; content: string; streaming?: boolean }
@@ -156,10 +157,10 @@ export default function FeedbackDeoAiPage() {
           accumulated += event.text
           updateAssistant(accumulated, true)
         } else if (event.type === 'done') {
-          // The answer is already assembled from delta events. Some providers
-          // return an incomplete/short final value, so never let it replace a
-          // longer answer that was visibly streamed to the user.
-          if (!accumulated.trim() && typeof event.text === 'string' && event.text.trim()) accumulated = event.text
+          // Keep whichever contains more of the completed answer. This both
+          // recovers chunks missed by the browser parser and avoids replacing
+          // a longer stream with a provider's truncated final value.
+          accumulated = chooseFinalChatText(accumulated, typeof event.text === 'string' ? event.text : '')
           eventCompleted = true
           updateAssistant(accumulated || "I'm Feedback Deo AI. I couldn't prepare a useful answer just now. Please try again.")
         } else if (event.type === 'error') {
