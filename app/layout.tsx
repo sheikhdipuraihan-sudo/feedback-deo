@@ -12,7 +12,7 @@ export const metadata: Metadata = {
     template: '%s | Feedback Deo',
   },
   description: siteDescription,
-  keywords: ['customer feedback', 'QR feedback', 'customer reviews', 'feedback form', 'business feedback', 'customer experience'],
+  keywords: ['FeedbackDeo', 'feedbackdeo', 'Feedback Deo', 'customer feedback', 'QR feedback', 'customer reviews', 'feedback form', 'business feedback', 'customer experience'],
   applicationName: siteName,
   authors: [{ name: siteName, url: siteUrl }],
   creator: siteName,
@@ -35,7 +35,7 @@ export const metadata: Metadata = {
     images: ['/og-image.png'],
   },
   robots: { index: true, follow: true, googleBot: { index: true, follow: true, 'max-image-preview': 'large', 'max-snippet': -1, 'max-video-preview': -1 } },
-  icons: { icon: [{ url: '/favicon-32x32.png', type: 'image/png', sizes: '32x32' }, { url: '/icon.svg', type: 'image/svg+xml' }], apple: '/apple-touch-icon.png' },
+  icons: { icon: [{ url: '/icon.svg', type: 'image/svg+xml' }, { url: '/favicon-48x48.png', type: 'image/png', sizes: '48x48' }, { url: '/favicon-32x32.png', type: 'image/png', sizes: '32x32' }], apple: [{ url: '/apple-touch-icon.png', sizes: '180x180', type: 'image/png' }] },
 }
 
 export const viewport: Viewport = {
@@ -52,6 +52,7 @@ const structuredData = {
       '@type': 'Organization',
       '@id': `${siteUrl}/#organization`,
       name: siteName,
+      alternateName: ['FeedbackDeo', 'feedbackdeo'],
       url: siteUrl,
       logo: `${siteUrl}/icon.svg`,
       email: 'feedbackdeo@gmail.com',
