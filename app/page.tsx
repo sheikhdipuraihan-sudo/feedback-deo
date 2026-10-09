@@ -66,21 +66,23 @@ function FeedbackForm({onSubmit}:{onSubmit:()=>void}){return <form className="mo
 function TurnstileField({onToken}:{onToken:(token:string)=>void}) {
   const container = useRef<HTMLDivElement>(null)
   const widgetId = useRef<string | null>(null)
+  const [loadError, setLoadError] = useState(false)
   const siteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || ""
   useEffect(() => {
     if (!siteKey) return
     let cancelled = false
     const renderWidget = () => {
       if (cancelled || !window.turnstile || !container.current || widgetId.current) return
-      window.turnstile.ready(() => {
-        if (cancelled || !window.turnstile || !container.current || widgetId.current) return
+      try {
         widgetId.current = window.turnstile.render(container.current, {
           sitekey: siteKey,
-          callback: onToken,
-          'error-callback': () => onToken(""),
+          callback: (token:string) => { setLoadError(false); onToken(token) },
+          'error-callback': () => { setLoadError(true); onToken("") },
           'expired-callback': () => onToken(""),
         })
-      })
+      } catch {
+        setLoadError(true)
+      }
     }
 
     const existingScript = document.getElementById('cf-turnstile-script') as HTMLScriptElement | null
@@ -88,6 +90,7 @@ function TurnstileField({onToken}:{onToken:(token:string)=>void}) {
       renderWidget()
     } else if (existingScript) {
       existingScript.addEventListener('load', renderWidget, { once: true })
+      existingScript.addEventListener('error', () => setLoadError(true), { once: true })
     } else {
       const script = document.createElement('script')
       script.id = 'cf-turnstile-script'
@@ -95,6 +98,7 @@ function TurnstileField({onToken}:{onToken:(token:string)=>void}) {
       script.async = true
       script.defer = true
       script.addEventListener('load', renderWidget, { once: true })
+      script.addEventListener('error', () => setLoadError(true), { once: true })
       document.head.appendChild(script)
     }
 
@@ -107,7 +111,7 @@ function TurnstileField({onToken}:{onToken:(token:string)=>void}) {
     }
   }, [siteKey, onToken])
   if (!siteKey) return <small className="form-error" role="alert">Verification is temporarily unavailable.</small>
-  return <div ref={container} />
+  return <><div ref={container} />{loadError&&<small className="form-error" role="alert">Verification could not load. Refresh the page and try again.</small>}</>
 }
 
 function AccessForm({mode,onSubmit,onForgotPassword,onSwitchMode}:{mode:"signup"|"login",onSubmit:()=>void,onForgotPassword:()=>void,onSwitchMode:()=>void}) {
