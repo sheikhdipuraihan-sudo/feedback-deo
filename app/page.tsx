@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, useState, type ReactNode } from "react"
 import { useRouter } from "next/navigation"
-import Script from "next/script"
 import { ArrowRight, BarChart3, Bell, Check, ChevronDown, Menu, QrCode, ScanLine, ShieldCheck, Star, X } from "lucide-react"
 import { registerWithPassword, loginWithPassword } from "@/lib/firebase/client"
 
@@ -68,23 +67,47 @@ function TurnstileField({onToken}:{onToken:(token:string)=>void}) {
   const container = useRef<HTMLDivElement>(null)
   const widgetId = useRef<string | null>(null)
   const siteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || ""
-  useEffect(() => () => {
-    if (widgetId.current) window.turnstile?.remove(widgetId.current)
-  }, [])
-  function renderWidget() {
-    if (!siteKey || !window.turnstile || !container.current) return
-    window.turnstile.ready(() => {
-      if (!window.turnstile || !container.current) return
-      widgetId.current = window.turnstile.render(container.current, {
-        sitekey: siteKey,
-        callback: onToken,
-        'error-callback': () => onToken(""),
-        'expired-callback': () => onToken(""),
+  useEffect(() => {
+    if (!siteKey) return
+    let cancelled = false
+    const renderWidget = () => {
+      if (cancelled || !window.turnstile || !container.current || widgetId.current) return
+      window.turnstile.ready(() => {
+        if (cancelled || !window.turnstile || !container.current || widgetId.current) return
+        widgetId.current = window.turnstile.render(container.current, {
+          sitekey: siteKey,
+          callback: onToken,
+          'error-callback': () => onToken(""),
+          'expired-callback': () => onToken(""),
+        })
       })
-    })
-  }
+    }
+
+    const existingScript = document.getElementById('cf-turnstile-script') as HTMLScriptElement | null
+    if (window.turnstile) {
+      renderWidget()
+    } else if (existingScript) {
+      existingScript.addEventListener('load', renderWidget, { once: true })
+    } else {
+      const script = document.createElement('script')
+      script.id = 'cf-turnstile-script'
+      script.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit'
+      script.async = true
+      script.defer = true
+      script.addEventListener('load', renderWidget, { once: true })
+      document.head.appendChild(script)
+    }
+
+    return () => {
+      cancelled = true
+      if (widgetId.current) {
+        window.turnstile?.remove(widgetId.current)
+        widgetId.current = null
+      }
+    }
+  }, [siteKey, onToken])
   if (!siteKey) return <small className="form-error" role="alert">Verification is temporarily unavailable.</small>
-  return <><Script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" strategy="afterInteractive" onReady={renderWidget} /><div ref={container} /></>
+  return <div ref={container} />
 }
 
 function AccessForm({mode,onSubmit,onForgotPassword,onSwitchMode}:{mode:"signup"|"login",onSubmit:()=>void,onForgotPassword:()=>void,onSwitchMode:()=>void}) {
