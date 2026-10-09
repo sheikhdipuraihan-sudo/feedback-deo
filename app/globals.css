@@ -58,6 +58,44 @@ nav.container{height:84px;position:relative;z-index:5}
 
 /* Fullscreen dashboard and Feedback Deo sidebar identity */
 .dashboard-page{padding:0;min-height:100dvh}
+
+/* Dashboard polish: clearer hierarchy, softer surfaces, and stronger interaction states */
+.dashboard-shell{grid-template-columns:248px minmax(0,1fr);box-shadow:0 24px 70px #16433314}
+.dashboard-sidebar{padding:30px 18px 22px;background:linear-gradient(180deg,#ffffff 0%,#fbfdfb 100%)}
+.dashboard-mark{padding:4px 12px 38px;font-size:21px}
+.dashboard-nav{gap:5px}
+.dashboard-nav a{padding:12px 13px;font-weight:500}
+.dashboard-nav a.active{position:relative}
+.dashboard-nav a.active::before{content:"";position:absolute;left:-18px;width:3px;height:22px;border-radius:0 999px 999px 0;background:var(--green)}
+.dashboard-main{padding:30px clamp(24px,5vw,76px) 76px}
+.dashboard-title{padding:46px 0 30px;align-items:flex-end}
+.dashboard-title h1{font-size:clamp(32px,3.5vw,48px);letter-spacing:-2.4px}
+.title-settings{padding-bottom:8px}
+.stats-grid{border-radius:16px}
+.stat-card{min-height:142px;padding:24px 28px;transition:background .2s ease,transform .2s ease}
+.stat-card:hover{background:#fbfefc;transform:translateY(-2px)}
+.stat-card strong{font-size:34px;letter-spacing:-1px}
+.telegram-panel,.feedback-panel,.setup-card{border-radius:16px}
+.telegram-panel{padding:24px 26px}
+.feedback-panel{padding:26px}
+.panel-heading{align-items:flex-start;gap:18px}
+.feedback-search{border-radius:9px;background:var(--cream);transition:border-color .2s ease,box-shadow .2s ease}
+.feedback-search:focus-within{border-color:#9ad9bb;box-shadow:0 0 0 3px #d9f7e988}
+.feedback-row{padding:20px 4px;transition:background .2s ease}
+.feedback-row:hover{background:#fbfefc}
+.feedback-row p{line-height:1.55}
+.button{min-height:40px}
+@media(max-width:650px){
+  .dashboard-main{padding:16px 16px 46px}
+  .dashboard-title{padding:34px 0 24px}
+  .dashboard-title h1{letter-spacing:-1.6px}
+  .dashboard-nav a.active::before{display:none}
+  .telegram-panel,.feedback-panel,.setup-card{border-radius:14px}
+  .feedback-panel{padding:18px}
+  .panel-heading{flex-direction:column}
+  .feedback-heading-actions{width:100%;flex-direction:column}
+  .feedback-search,.feedback-heading-actions .button{width:100%}
+}
 .dashboard-shell{width:100%;min-height:100dvh;border-radius:0;box-shadow:none}
 .dashboard-mark b{color:var(--green);font-weight:700}.dashboard-mark small{font-size:inherit;color:var(--green);margin-left:0}
 @media(max-width:900px){.dashboard-page{padding:0}.dashboard-shell{border-radius:0}}
