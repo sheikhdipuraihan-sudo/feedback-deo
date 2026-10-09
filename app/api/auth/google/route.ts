@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { randomBytes, timingSafeEqual } from 'node:crypto'
 import { cookies } from 'next/headers'
 import { createSession, createUser, getUserByEmail, getUserByGoogleSub, getAuthAdminClient, publicUser } from '@/lib/auth/server'
+import { verifyTurnstileToken } from '@/lib/turnstile'
 
 export const runtime = 'nodejs'
 const STATE_COOKIE = 'feedback_deo_google_state'
@@ -20,8 +21,15 @@ function failure(request: Request, reason: string) {
 }
 
 export async function GET(request: Request) {
+  return NextResponse.json({ error: 'Start Google sign-in from the business owner form.' }, { status: 405 })
+}
+
+export async function POST(request: Request) {
+  const body = await request.json().catch(() => ({})) as Record<string, unknown>
+  const verified = await verifyTurnstileToken(body.turnstileToken, new URL(request.url).hostname)
+  if (!verified) return NextResponse.json({ error: 'Complete the verification challenge and try again.' }, { status: 403 })
   const clientId = process.env.GOOGLE_CLIENT_ID
-  if (!clientId) return failure(request, 'Google sign-in is not configured yet.')
+  if (!clientId) return NextResponse.json({ error: 'Google sign-in is not configured yet.' }, { status: 503 })
   const state = randomBytes(32).toString('base64url')
   const store = await cookies()
   store.set(STATE_COOKIE, state, { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'lax', path: '/', maxAge: 600 })
@@ -33,11 +41,7 @@ export async function GET(request: Request) {
     state,
     prompt: 'select_account',
   })
-  return NextResponse.redirect(`https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`)
-}
-
-export async function POST(request: Request) {
-  return GET(request)
+  return NextResponse.json({ url: `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}` })
 }
 
 export async function OPTIONS() {

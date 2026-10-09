@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { getFirebaseAdminAuth } from '@/lib/firebase/admin'
+import { verifyTurnstileToken } from '@/lib/turnstile'
 import { ACCOUNT_CONFIRMATION_BASE_URL, sendAccountConfirmationEmail } from '@/lib/account-confirmation'
 import {
   createSession,
@@ -44,6 +45,10 @@ export async function POST(request: Request) {
   const body = await request.json().catch(() => ({})) as Record<string, unknown>
   const email = normalizeEmail(String(body.email || ''))
   const password = String(body.password || '')
+  if (action === 'register' || action === 'login') {
+    const verified = await verifyTurnstileToken(body.turnstileToken, new URL(request.url).hostname)
+    if (!verified) return bad('Complete the verification challenge and try again.', 403)
+  }
   if (action === 'register') {
     if (!email.includes('@') || email.length > 254) return bad('Enter a valid email address.')
     if (!validPassword(password)) return bad('Choose a password between 8 and 200 characters.')

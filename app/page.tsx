@@ -1,9 +1,25 @@
 "use client"
 
-import { useState, type ReactNode } from "react"
+import { useEffect, useRef, useState, type ReactNode } from "react"
 import { useRouter } from "next/navigation"
+import Script from "next/script"
 import { ArrowRight, BarChart3, Bell, Check, ChevronDown, Menu, QrCode, ScanLine, ShieldCheck, Star, X } from "lucide-react"
 import { registerWithPassword, loginWithPassword } from "@/lib/firebase/client"
+
+declare global {
+  interface Window {
+    turnstile?: {
+      ready: (callback: () => void) => void
+      render: (container: HTMLElement, options: {
+        sitekey: string
+        callback: (token: string) => void
+        'error-callback': () => void
+        'expired-callback': () => void
+      }) => string
+      remove: (widgetId: string) => void
+    }
+  }
+}
 
 const features = [
   { icon: QrCode, title: "QR feedback", text: "Give every customer touchpoint—checkout, appointment, room, class, or table—its own QR." },
@@ -48,10 +64,54 @@ export default function Home() {
 }
 function DemoCard({onSubmit}:{onSubmit:()=>void}){return <div className="demo-area"><div className="scan-card soft-shadow"><div className="scan-head"><span className="tiny-brand">feedback <b>deo</b></span><span className="live"><i/> LIVE</span></div><div className="scan-body"><div className="logo-circle">B</div><small>YOUR BUSINESS · YOUR CITY</small><h3>How was your<br/>experience?</h3><div className="big-stars" aria-label="Rate your experience">{Array.from({length:5},(_,index)=><Star key={index} fill="currentColor" aria-hidden="true"/>)}</div><div className="fake-input">Tell us what you think... <span>optional</span></div><button className="button green full" onClick={onSubmit}>Submit feedback <ArrowRight size={15}/></button><small className="anonymous"><ShieldCheck size={13}/> Anonymous by default</small></div></div><div className="alert-card soft-shadow"><div className="alert-icon"><Bell size={16}/></div><div><small>NEW FEEDBACK · TELEGRAM</small><strong>4/5 <span className="star star-icons" aria-label="4 out of 5 stars">{Array.from({length:4},(_,index)=><Star key={index} size={9} fill="currentColor" aria-hidden="true"/> )}</span></strong><p>“Great service and a smooth experience.”</p><small>Checkout · just now</small></div></div><div className="orb orb-one"/><div className="orb orb-two"/></div>}
 function FeedbackForm({onSubmit}:{onSubmit:()=>void}){return <form className="modal-form" onSubmit={(e)=>{e.preventDefault();onSubmit()}}><label>Rating<select required defaultValue=""><option value="" disabled>Choose a rating</option><option>5 - Excellent</option><option>4 - Good</option><option>3 - Average</option><option>2 - Needs work</option><option>1 - Poor</option></select></label><label>Your feedback<textarea placeholder="What should we know?" required /></label><button className="button green full" type="submit">Send feedback <ArrowRight size={15}/></button><small className="anonymous"><ShieldCheck size={13}/> Anonymous by default</small></form>}
+function TurnstileField({onToken}:{onToken:(token:string)=>void}) {
+  const container = useRef<HTMLDivElement>(null)
+  const widgetId = useRef<string | null>(null)
+  const siteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || ""
+  useEffect(() => () => {
+    if (widgetId.current) window.turnstile?.remove(widgetId.current)
+  }, [])
+  function renderWidget() {
+    if (!siteKey || !window.turnstile || !container.current) return
+    window.turnstile.ready(() => {
+      if (!window.turnstile || !container.current) return
+      widgetId.current = window.turnstile.render(container.current, {
+        sitekey: siteKey,
+        callback: onToken,
+        'error-callback': () => onToken(""),
+        'expired-callback': () => onToken(""),
+      })
+    })
+  }
+  if (!siteKey) return <small className="form-error" role="alert">Verification is temporarily unavailable.</small>
+  return <><Script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" strategy="afterInteractive" onReady={renderWidget} /><div ref={container} /></>
+}
+
 function AccessForm({mode,onSubmit,onForgotPassword,onSwitchMode}:{mode:"signup"|"login",onSubmit:()=>void,onForgotPassword:()=>void,onSwitchMode:()=>void}) {
   const router=useRouter();
   const [error,setError]=useState("");
   const [busy,setBusy]=useState(false);
+  const [turnstileToken,setTurnstileToken]=useState("");
+  const [challengeVersion,setChallengeVersion]=useState(0);
+  function refreshVerification() {
+    setTurnstileToken("");
+    setChallengeVersion(version=>version+1);
+  }
+  async function startGoogleSignIn() {
+    if (!turnstileToken) return;
+    setBusy(true);
+    setError("");
+    try {
+      const response = await fetch("/api/auth/google", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ turnstileToken }) });
+      const result = await response.json().catch(() => ({})) as { url?: string; error?: string };
+      if (!response.ok || !result.url) throw new Error(result.error || "Google sign-in could not be started.");
+      window.location.assign(result.url);
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Google sign-in could not be started.");
+      refreshVerification();
+      setBusy(false);
+    }
+  }
   async function submit(e:React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setBusy(true);
@@ -61,8 +121,8 @@ function AccessForm({mode,onSubmit,onForgotPassword,onSwitchMode}:{mode:"signup"
     const password=String(form.get("password"));
     const businessName=String(form.get("business") || "");
     try {
-      if(mode === "signup") await registerWithPassword(email,password,businessName);
-      else await loginWithPassword(email,password);
+      if(mode === "signup") await registerWithPassword(email,password,businessName,turnstileToken);
+      else await loginWithPassword(email,password,turnstileToken);
       onSubmit();
       router.push('/dashboard');
     } catch (caught) {
@@ -77,16 +137,18 @@ function AccessForm({mode,onSubmit,onForgotPassword,onSwitchMode}:{mode:"signup"
       setError(message);
       console.error("Feedback Deo custom auth failed",caught);
     }
+    refreshVerification();
     setBusy(false);
   }
   return <form className="modal-form" onSubmit={submit}>
     <label>Email address<input name="email" type="email" placeholder="you@business.com" required /></label>
     <label>Password<input name="password" type="password" placeholder="At least 8 characters" minLength={8} required /></label>
     {mode === "signup" && <label>Business name<input name="business" placeholder="The Commons Café" required /></label>}
+    <TurnstileField key={challengeVersion} onToken={setTurnstileToken} />
     {error&&<small className="form-error" role="alert">{error}</small>}
     <div className="auth-button-stack">
-      <button className="button green full" type="submit" disabled={busy}>{busy ? "Working…" : mode === "login" ? "Log in" : "Create free space"} <ArrowRight size={15}/></button>
-      <a className="button full google-auth" href="/api/auth/google"><GoogleIcon />Continue with Google</a>
+      <button className="button green full" type="submit" disabled={busy || !turnstileToken}>{busy ? "Working…" : mode === "login" ? "Log in" : "Create free space"} <ArrowRight size={15}/></button>
+      <button className="button full google-auth" type="button" onClick={startGoogleSignIn} disabled={busy || !turnstileToken}><GoogleIcon />Continue with Google</button>
     </div>
     {mode === "login"&&<button type="button" className="auth-switch" onClick={onForgotPassword}>Forgot your password?</button>}
     {mode === "signup"&&<label className="checkbox-row signup-consent"><input name="legalConsent" type="checkbox" required /><span>I agree to the <a href="/terms" target="_blank" rel="noreferrer">Terms of Service</a> and acknowledge the <a href="/privacy" target="_blank" rel="noreferrer">Privacy Policy</a>.</span></label>}

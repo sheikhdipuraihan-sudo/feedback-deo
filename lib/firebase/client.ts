@@ -19,13 +19,13 @@ function withToken(user: Omit<AppUser, 'getIdToken'>): AppUser {
   return { ...user, getIdToken: async () => getSessionToken() }
 }
 
-export async function registerWithPassword(email: string, password: string, businessName: string) {
-  const payload = await request('/api/auth/custom?action=register', { method: 'POST', body: JSON.stringify({ email, password, businessName }) })
+export async function registerWithPassword(email: string, password: string, businessName: string, turnstileToken: string) {
+  const payload = await request('/api/auth/custom?action=register', { method: 'POST', body: JSON.stringify({ email, password, businessName, turnstileToken }) })
   return withToken(payload.user as Omit<AppUser, 'getIdToken'>)
 }
 
-export async function loginWithPassword(email: string, password: string) {
-  const response = await fetch('/api/auth/custom?action=login', { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email, password }) })
+export async function loginWithPassword(email: string, password: string, turnstileToken: string) {
+  const response = await fetch('/api/auth/custom?action=login', { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email, password, turnstileToken }) })
   const payload = await response.json().catch(() => ({})) as { user?: Omit<AppUser, 'getIdToken'>; error?: string }
   if (!response.ok) {
     const error = new Error(payload.error || 'Authentication request failed.')
